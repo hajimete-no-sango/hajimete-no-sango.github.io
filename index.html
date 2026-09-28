@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>はじめてのサンゴ水槽 ～My First Reef～</title>
+<style>
+:root{--glass:rgba(255,255,255,.82);--ink:#24405c;--sub:#5d7890;--accent:#ff8a3d;--sea:#27a4d8;--ok:#3bbf7a;--warn:#f0a91e;--bad:#e8506a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#061a33;font-family:"Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","BIZ UDPGothic","Yu Gothic UI","Meiryo",system-ui,sans-serif;color:var(--ink);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.hidden{display:none!important}
+.panel{background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:18px;box-shadow:0 6px 24px rgba(0,30,60,.22);border:1px solid rgba(255,255,255,.65);transition:background 1.4s,color 1.4s,border-color 1.4s}
+body.night .panel{background:rgba(16,22,68,.74);color:#e8eeff;border-color:rgba(140,160,255,.28)}
+body.night{--ink:#e8eeff;--sub:#aab6e8}
+/* HUD */
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:4}
+#hud .panel{pointer-events:auto}
+#hudL{padding:8px 16px;display:flex;align-items:center;gap:14px;font-size:14px}
+#hudL b{font-size:18px}
+#hudL .cp b{color:#ff7a1a}
+#hudR{padding:8px 12px;display:flex;align-items:center;gap:14px;font-size:12px}
+.g{display:flex;flex-direction:column;gap:2px;min-width:70px}
+.g label{color:var(--sub);font-size:11px}
+.g b{font-size:15px}
+.gbar{height:8px;width:90px;background:rgba(0,0,0,.1);border-radius:6px;overflow:hidden}
+.gbar i{display:block;height:100%;width:80%;background:var(--ok);border-radius:6px;transition:width .5s,background .5s}
+#helpBtn{width:30px;height:30px;border-radius:50%;border:none;background:linear-gradient(#fff,#e2f2ff);font:inherit;font-weight:700;color:#24405c;cursor:pointer}
+#mchip{position:fixed;top:12px;left:50%;transform:translateX(-50%);padding:7px 16px;font-size:13px;cursor:pointer;pointer-events:auto;z-index:4;max-width:44vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mchip b{color:#ff7a1a}
+@media (max-width:900px){#mchip{top:62px;max-width:90vw}}
+/* toolbar */
+#bar{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:4px;padding:7px 8px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 16px);z-index:4}
+.grp{display:flex;gap:5px;align-items:center;padding:0 6px}
+.grp+.grp{border-left:1px solid rgba(120,150,190,.25)}
+button.tb{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;padding:5px 7px;border:none;border-radius:14px;background:linear-gradient(#fff,#e8f5ff);box-shadow:0 2px 0 rgba(0,60,120,.16);font:inherit;font-size:19px;color:#24405c;cursor:pointer;transition:transform .12s,background .6s,color .6s}
+button.tb span{font-size:10.5px;font-weight:700;letter-spacing:.02em}
+button.tb:hover{transform:translateY(-2px)}
+button.tb:active{transform:translateY(1px)}
+button.tb.on{background:linear-gradient(#ffe7cc,#ffc792);box-shadow:0 2px 0 rgba(200,100,20,.3)}
+button.tb[disabled]{opacity:.45;cursor:default;transform:none}
+body.night button.tb{background:linear-gradient(#2d3888,#1d2568);color:#e8eeff;box-shadow:0 2px 0 rgba(0,0,0,.3)}
+body.night button.tb.on{background:linear-gradient(#5a4dd8,#3a2fb0)}
+#lightSlider{width:96px;accent-color:#5a6cff;cursor:pointer}
+.lightwrap{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--sub);gap:2px}
+/* mascot */
+#mascot{position:fixed;left:12px;bottom:96px;display:flex;align-items:flex-end;gap:4px;pointer-events:none;z-index:5}
+#nemo{width:86px;height:66px;pointer-events:auto;cursor:pointer;animation:bob 3.2s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+#bubble{pointer-events:auto;max-width:min(440px,68vw);padding:12px 16px 12px 14px;font-size:14px;line-height:1.7;margin-bottom:30px;position:relative;cursor:pointer}
+#bubble:before{content:"";position:absolute;left:-9px;bottom:14px;border:9px solid transparent;border-right-color:rgba(255,255,255,.82);border-left:0}
+body.night #bubble:before{border-right-color:rgba(16,22,68,.74)}
+#bubble .nx{position:absolute;right:10px;bottom:4px;font-size:11px;color:var(--sub);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+/* toast */
+#toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);padding:9px 18px;font-size:14px;font-weight:700;z-index:9;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translate(-50%,-8px)}
+/* place banner */
+#place{position:fixed;top:64px;left:50%;transform:translateX(-50%);padding:10px 16px;font-size:14px;z-index:6;display:flex;gap:12px;align-items:center;max-width:94vw}
+#place b{color:#ff7a1a}
+#place .st{font-weight:700}
+#place button{border:none;border-radius:10px;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer;background:#e8eef6;color:#24405c}
+/* coral card */
+#card{position:fixed;right:12px;top:66px;width:min(350px,94vw);max-height:calc(100vh - 170px);overflow:auto;padding:14px;z-index:6}
+.ch{display:flex;gap:10px;align-items:center}
+.ch img{width:120px;height:80px;border-radius:12px;flex:none}
+.ch h3{font-size:17px;line-height:1.3}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;background:#e2f3ff;color:#1d6fa5;margin-right:4px}
+.chip.lps{background:#ffe9d6;color:#c2600f}.chip.sps{background:#f1e2ff;color:#7b3fc2}
+body.night .chip{filter:brightness(.9)}
+.stars{color:#ffb020;letter-spacing:1px;font-size:12px}
+.mood{margin:10px 0 6px;font-size:14px;font-weight:700}
+.row2{display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0}
+.row2 .gbar{flex:1;width:auto}
+.cond{list-style:none;margin:8px 0;font-size:12.5px}
+.cond li{display:flex;gap:6px;padding:5px 0;border-bottom:1px dashed rgba(120,150,190,.3);line-height:1.5}
+.cond .mk{width:18px;flex:none;text-align:center;font-weight:700}
+.mk.o{color:var(--ok)}.mk.t{color:var(--warn)}.mk.x{color:var(--bad)}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.btns button,.pbtn{border:none;border-radius:12px;padding:8px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(#fff,#e6f2ff);color:#24405c;box-shadow:0 2px 0 rgba(0,60,120,.15)}
+.btns button.hot,.pbtn.hot{background:linear-gradient(#ffb36b,#ff8a3d);color:#fff}
+.btns button[disabled],.pbtn[disabled]{opacity:.45;cursor:default}
+.xbtn{position:absolute;right:10px;top:8px;border:none;background:none;font-size:22px;color:var(--sub);cursor:pointer}
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(3,12,30,.45);display:flex;align-items:center;justify-content:center;z-index:8}
+#mcard{position:relative;width:min(900px,95vw);max-height:88vh;overflow:auto;padding:18px 20px}
+#mcard h2{font-size:20px;margin-bottom:10px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:none;border-radius:12px;padding:7px 14px;font:inherit;font-weight:700;cursor:pointer;background:rgba(0,80,140,.08);color:inherit}
+.tabs button.on{background:#ff8a3d;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.item{background:rgba(255,255,255,.55);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:5px;font-size:12px;border:1px solid rgba(0,60,120,.08)}
+body.night .item{background:rgba(40,50,120,.45)}
+.item img{width:100%;border-radius:10px;aspect-ratio:16/10;object-fit:cover}
+.item h4{font-size:14px}
+.item .catch{color:var(--sub);font-size:11.5px}
+.item .meta{display:flex;justify-content:space-between;align-items:center;margin-top:auto;gap:6px}
+.price{font-weight:700;color:#ff7a1a;font-size:14px}
+.item.locked img{filter:brightness(0) opacity(.35)}
+.item.clickable{cursor:pointer;transition:transform .12s}
+.item.clickable:hover{transform:translateY(-2px)}
+.detail{display:grid;grid-template-columns:minmax(260px,400px) 1fr;gap:16px}
+@media (max-width:700px){.detail{grid-template-columns:1fr}}
+.detail img{width:100%;border-radius:14px}
+.detail dl{font-size:13px;line-height:1.7}
+.detail dt{font-weight:700;color:#ff7a1a;margin-top:8px;font-size:12px}
+.morphs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.morphs button{border:none;border-radius:10px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;background:rgba(0,80,140,.1);color:inherit}
+.morphs button.on{background:#5a6cff;color:#fff}
+.morphs span{font-size:12px;padding:4px 8px;opacity:.5}
+.mlist{list-style:none}
+.mlist li{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px dashed rgba(120,150,190,.3);font-size:13px}
+.mlist li .ic{font-size:18px;width:26px;text-align:center}
+.mlist li.done{opacity:.55}
+.mlist li.cur{background:rgba(255,160,80,.14);border-radius:10px}
+.mlist small{color:var(--sub)}
+.help p{font-size:13.5px;line-height:1.8;margin-bottom:8px}
+/* title */
+#title{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 30%,rgba(0,10,30,.35) 100%)}
+.tcard{text-align:center;padding:34px 44px;border-radius:28px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.35);color:#fff;text-shadow:0 2px 12px rgba(0,30,80,.45)}
+.tcard .l1{font-size:22px;letter-spacing:.2em}
+.tcard .l2{font-size:52px;font-weight:800;letter-spacing:.08em;line-height:1.15}
+.tcard .l3{font-size:14px;letter-spacing:.35em;opacity:.9;margin:6px 0 16px}
+.tcard p{font-size:15px;line-height:1.9;margin-bottom:18px}
+.tcard button{display:block;margin:8px auto;min-width:220px;border:none;border-radius:30px;padding:13px 26px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;background:linear-gradient(#ffb36b,#ff7a2a);color:#fff;box-shadow:0 5px 0 #c9561a,0 10px 24px rgba(0,0,0,.25);transition:transform .12s}
+.tcard button:hover{transform:translateY(-2px)}
+.tcard button.ghost{background:rgba(255,255,255,.2);box-shadow:none;font-size:13px;min-width:0;padding:8px 18px}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20;transition:opacity .5s}
+body.titling #hud,body.titling #mchip,body.titling #bar,body.titling #mascot,body.shot #hud,body.shot #mchip,body.shot #bar,body.shot #mascot,body.shot #title,body.shot #toast{display:none!important}
+</style>
+</head>
+<body class="titling">
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="hudL" class="panel">
+    <span>Day <b id="hDay">1</b></span><span id="hTime">9:00</span><span class="cp">💎 <b id="hCp">40</b></span>
+  </div>
+  <div id="hudR" class="panel">
+    <div class="g"><label>水のきれいさ</label><div class="gbar"><i id="gQ"></i></div></div>
+    <div class="g"><label>塩分（比重）</label><b id="gS">1.024</b></div>
+    <div class="g"><label>水温</label><b id="gT">25.5℃</b></div>
+    <button id="helpBtn" title="遊び方">？</button>
+  </div>
+</div>
+<div id="mchip" class="panel">🎯 <span id="mTitle"></span></div>
+
+<div id="bar" class="panel">
+  <div class="grp">
+    <button class="tb lb" data-light="0">☀️<span>白</span></button>
+    <button class="tb lb" data-light="0.5">🌗<span>ミックス</span></button>
+    <button class="tb lb" data-light="1">🌙<span>青</span></button>
+    <div class="lightwrap"><input type="range" id="lightSlider" min="0" max="100" value="0"><span id="lightLbl">白色LED</span></div>
+    <button class="tb" id="cycleBtn" title="本物の水槽のように、時間で照明が変わります">⏱<span>1日の光</span></button>
+  </div>
+  <div class="grp">
+    <button class="tb" id="feedBtn">🍤<span>エサ</span></button>
+    <button class="tb" id="topoffBtn">💧<span>足し水</span></button>
+    <button class="tb" id="wcBtn">🔄<span>水換え</span></button>
+  </div>
+  <div class="grp">
+    <button class="tb" id="shopBtn">🛒<span>ショップ</span></button>
+    <button class="tb" id="zukanBtn">📖<span>図鑑</span></button>
+    <button class="tb" id="missionBtn">🎯<span>ミッション</span></button>
+    <button class="tb" id="photoBtn">📷<span>写真</span></button>
+  </div>
+</div>
+
+<div id="mascot">
+  <svg id="nemo" viewBox="0 0 130 100" aria-label="クマノミ先生">
+    <defs><clipPath id="nb"><ellipse cx="64" cy="54" rx="44" ry="30"/></clipPath></defs>
+    <path d="M52 27 Q64 10 82 24 Z" fill="#ff7a1a" stroke="#2a2a2a" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M24 54 Q10 36 4 34 Q12 54 4 74 Q10 72 24 54 Z" fill="#ff7a1a" stroke="#2a2a2a" stroke-width="2.4" stroke-linejoin="round"/>
+    <ellipse cx="64" cy="54" rx="44" ry="30" fill="#ff7a1a"/>
+    <g clip-path="url(#nb)" stroke="#2a2a2a" stroke-width="2.4">
+      <path d="M78 20 Q88 54 78 88 L68 88 Q78 54 68 20 Z" fill="#fff"/>
+      <path d="M52 20 Q60 54 52 88 L40 88 Q48 54 40 20 Z" fill="#fff"/>
+      <path d="M28 20 Q34 54 28 88 L22 88 Q28 54 22 20 Z" fill="#fff"/>
+    </g>
+    <ellipse cx="64" cy="54" rx="44" ry="30" fill="none" stroke="#2a2a2a" stroke-width="2.6"/>
+    <ellipse cx="60" cy="72" rx="9" ry="5" fill="#ff9a3c" stroke="#2a2a2a" stroke-width="2" transform="rotate(20 60 72)"/>
+    <circle cx="92" cy="46" r="10" fill="#fff" stroke="#2a2a2a" stroke-width="2.2"/>
+    <circle cx="94" cy="47" r="6.5" fill="#1d1d2b"/><circle cx="96.5" cy="44" r="2.3" fill="#fff"/>
+    <ellipse cx="88" cy="62" rx="6" ry="3.4" fill="#ff8fab" opacity=".75"/>
+    <path d="M101 60 Q104.5 64 108 60" stroke="#2a2a2a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M70 16 L92 8 L114 16 L92 24 Z" fill="#2b3a5a"/><rect x="85" y="19" width="14" height="7" rx="2" fill="#2b3a5a"/>
+    <path d="M112 16 L114 28" stroke="#ffc83a" stroke-width="2.4" stroke-linecap="round"/><circle cx="114" cy="29" r="2.6" fill="#ffc83a"/>
+  </svg>
+  <div id="bubble" class="panel hidden"><div id="bubbleText"></div><span class="nx">▼</span></div>
+</div>
+
+<div id="place" class="panel hidden"><span id="placeMsg"></span><span class="st" id="placeSt"></span><button id="placeCancel">やめる</button></div>
+<div id="card" class="panel hidden"></div>
+<div id="modal" class="hidden"><div id="mcard" class="panel"><button class="xbtn" id="mclose">×</button><div id="mbody"></div></div></div>
+<div id="toast" class="panel"></div>
+<div id="flash"></div>
+
+<div id="title">
+  <div class="tcard">
+    <div class="l1">はじめての</div>
+    <div class="l2">サンゴ水槽</div>
+    <div class="l3">MY FIRST REEF</div>
+    <p>光と水と、小さな生きもの。<br>あなただけの海を育てよう。</p>
+    <button id="startBtn">はじめる</button>
+    <button id="resetBtn" class="ghost hidden">さいしょからやり直す</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   はじめてのサンゴ水槽 ― サンゴ未経験者向けの育成ゲーム（1ファイル完結）
+   ・サンゴ/魚/機材/ミッションは下の「データ」節にまとめてある。
+     種類を増やすときは CORALS にデータと R.<id>（描画）/ GEO.<id>（形）を足す。
+   ・ゲーム内の数値はゲーム用に簡略化したもの（実際の飼育数値ではない）。
+   ===================================================================== */
+const W=1200,H=700,TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t, sstep=t=>t*t*(3-2*t);
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const HX=new Map();
+function hx(h){let v=HX.get(h);if(!v){const n=parseInt(h.slice(1),16);v=[(n>>16)&255,(n>>8)&255,n&255];HX.set(h,v);}return v;}
+const mixc=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const rgba=(c,a=1)=>`rgba(${clamp(c[0],0,255)|0},${clamp(c[1],0,255)|0},${clamp(c[2],0,255)|0},${a})`;
+const Q=new URLSearchParams(location.search);
+
+/* ============================ データ ============================ */
+const CORALS={
+ zoa:{name:'マメスナギンチャク',en:'Zoanthids',group:'ソフトコーラル',diff:1,light:[0.2,0.72],flow:[0.15,0.85],price:30,value:0.10,grow:1.4,size:1,hy:10,hr:40,thumb:1.15,
+  catch:'小さなお花のブーケ',desc:'直径1cmほどの小さなポリプが集まって、お花畑のように広がっていく。',charm:'色の組み合わせは数えきれないほど。好きな色を集めるのが楽しい。',tip:'丈夫で成長も早い、はじめての1株に。岩の中段〜下段でOK。',fact:'一部の種類は毒（パリトキシン）を持つので、本物を触るときは手袋をしよう。',
+  morphs:[{name:'サンセット',w:5,pal:{col:['#9a7456'],skirt:['#ff9a3c','#ff7300'],disc:['#2fb3a0','#00ffc3'],mouth:['#ffd84a','#fff45a']}},
+          {name:'パープルハート',w:3,pal:{col:['#7d5a6e'],skirt:['#b86ee0','#c65bff'],disc:['#ff8db3','#ff3d9e'],mouth:['#ffe27a','#fff36b']}},
+          {name:'ラグーン',w:2,pal:{col:['#6b7a70'],skirt:['#35d6c4','#00ffe6'],disc:['#3a6ee0','#4a7dff'],mouth:['#ff7070','#ff3a6a']}}]},
+ gsp:{name:'ツツウミヅタ',en:'Green Star Polyp',group:'ソフトコーラル',diff:1,light:[0.25,0.95],flow:[0.25,0.95],price:45,value:0.11,grow:1.6,size:1,hy:8,hr:48,thumb:1.05,
+  catch:'ゆらゆら揺れる緑の星',desc:'紫色のマットから、星形の小さなポリプがたくさん伸びる。',charm:'水流でいっせいに揺れる姿は、風にそよぐ草原のよう。',tip:'とても丈夫。ただし増えるのが早く岩を覆っていくので、置き場所は計画的に。',fact:'英名はグリーンスターポリプ。アクアリストの間では「スターポリプ」と呼ばれる。',
+  morphs:[{name:'ネオングリーン',w:5,pal:{mat:['#7b3f93','#6a28b0'],stalk:['#c9c08e','#8dffb0'],tent:['#9edb6a','#3dff6f'],center:['#eef7c4','#d9ff5a']}},
+          {name:'イエローポリプ',w:2,pal:{mat:['#6e3a86','#5a2a9a'],stalk:['#d8cf8e','#e8ff9a'],tent:['#e4dc5e','#eaff2a'],center:['#fff6c8','#ffff8a']}}]},
+ mushroom:{name:'ディスクコーラル',en:'Mushroom Coral',group:'ソフトコーラル',diff:1,light:[0.1,0.55],flow:[0.05,0.55],price:55,value:0.12,grow:1.1,size:1,hy:8,hr:40,thumb:1.2,
+  catch:'ひらひらの円盤',desc:'平たい円盤のような姿。骨格を持たない「ホネナシサンゴ」の仲間。',charm:'模様・色・形のバリエーションが豊富で、集める楽しさがある。',tip:'強い光と強い水流は苦手。水槽の下の方、日陰が好き。',fact:'円盤の一部がちぎれて、そこから新しい株として増えることもある。',
+  morphs:[{name:'レッド',w:4,pal:{disc:['#d04a72','#ff2d63'],stripe:['#8e2446','#c01552'],spot:['#ffd5df','#ffe34a'],mouth:['#ffe7a8','#fff27a']}},
+          {name:'ブルー',w:3,pal:{disc:['#4f73d6','#3d6cff'],stripe:['#2b3f8f','#2033c0'],spot:['#b5e6ff','#5affff'],mouth:['#e8f4ff','#b8ffff']}},
+          {name:'ジェード',w:2,pal:{disc:['#3aa37a','#1cff8e'],stripe:['#1f6a4c','#0e9a55'],spot:['#eaffb8','#f2ff4a'],mouth:['#fff5c8','#ffff9a']}}]},
+ toadstool:{name:'ウミキノコ',en:'Toadstool Leather',group:'ソフトコーラル',diff:2,light:[0.3,0.9],flow:[0.2,0.85],price:80,value:0.16,grow:1.1,size:1.05,hy:45,hr:50,thumb:0.95,
+  catch:'ふわふわのキノコ',desc:'太い柄の上にカサ。カサの上に細かいポリプがびっしり生える。',charm:'ポリプが開くと、ふわふわの毛布をかぶったみたいになる。',tip:'ときどきしぼんで表面の皮を脱ぐ（脱皮）ことがあるけど、数日で元どおり。あわてなくて大丈夫。',fact:'大きく育つと、カサの直径が数十cmになることもある。',
+  morphs:[{name:'クリーム',w:4,pal:{stalk:['#eadfc0'],cap:['#dcc893'],capUnder:['#b7a270'],polyp:['#f6f1d4','#b6ff5c'],polypTip:['#fffbe8','#e6ff7a']}},
+          {name:'グリーン',w:3,pal:{stalk:['#e2dcb8'],cap:['#b9c67c','#8fbf3a'],capUnder:['#97a45e'],polyp:['#dcf2a4','#5cff3a'],polypTip:['#f3ffd0','#c8ff5a']}}]},
+ brain:{name:'オープンブレイン',en:'Open Brain Coral',group:'LPS',diff:2,light:[0.28,0.75],flow:[0.1,0.55],price:120,value:0.2,grow:0.9,size:1,hy:12,hr:42,thumb:1.2,sand:true,feed:true,nofrag:true,
+  catch:'ぷるぷるのお肉',desc:'和名はヒユサンゴ。骨格の上に厚い肉がのった、大きなポリプのサンゴ（LPS）。',charm:'肉がふくらむと、ぷるんとしたゼリーのような質感に。色のコントラストが鮮やか。',tip:'砂の上に置こう。ときどきエサをあげるとよく育つ。水流は弱めが好み。',fact:'ひとつの大きなポリプで暮らす単体のサンゴなので、ふつうは株分けしない。夜になると触手を伸ばしてエサをつかまえる。',
+  morphs:[{name:'レッド＆グリーン',w:4,pal:{skel:['#cfc6b8'],flesh:['#d4485a','#ff2a4e'],fleshHi:['#f07a86','#ff6a7e'],fleshLo:['#9c2a3c','#c0103a'],rim:['#62c46e','#3dff5c'],groove:['#6e1f2c','#8a0a2a']}},
+          {name:'ブルーパープル',w:2,pal:{skel:['#cfc6b8'],flesh:['#7258cc','#8a4dff'],fleshHi:['#9c86ea','#b88aff'],fleshLo:['#4a3a98','#5a2ad0'],rim:['#46c9d6','#1ff2ff'],groove:['#2e2466','#3a1a90']}}]},
+ torch:{name:'トーチコーラル',en:'Torch Coral',group:'LPS',diff:3,light:[0.4,0.85],flow:[0.3,0.75],price:160,value:0.26,grow:1.0,size:1,hy:40,hr:55,thumb:0.95,feed:true,aggressive:true,
+  catch:'ゆらめく光のたいまつ',desc:'ナガレハナサンゴの仲間。長い触手の先に、丸いチップがつく。',charm:'水流になびく触手と、光る先端。LPSの中でも特に人気が高い。',tip:'周りのサンゴを刺す長い触手（スイーパー触手）を伸ばすことがある。となりとは間をあけよう。',fact:'カクレクマノミが、イソギンチャクの代わりに寄り添うこともある。',
+  morphs:[{name:'グリーン',w:4,pal:{skel:['#bdb6a8'],body:['#a3b06c','#4dff3a'],bodyHi:['#dde8a8','#b8ff8a'],tip:['#d9f27a','#e8ff2a']}},
+          {name:'バナナ',w:3,pal:{skel:['#bdb6a8'],body:['#e3c35a','#ffd21a'],bodyHi:['#fff0b0','#fff08a'],tip:['#fff3a8','#fffb6a']}},
+          {name:'パープルチップ',w:2,pal:{skel:['#bdb6a8'],body:['#a9a476','#5dff4a'],bodyHi:['#e0e0b8','#c0ff9a'],tip:['#d890ea','#ff5cff']}}]},
+ montipora:{name:'コモンサンゴ',en:'Montipora',group:'SPS',diff:3,light:[0.5,1.05],flow:[0.35,1.0],price:220,value:0.3,grow:1.0,size:1,hy:35,hr:45,thumb:0.95,
+  catch:'重なる花びらのお皿',desc:'薄いお皿のように育つ、小さなポリプのハードコーラル（SPS）。',charm:'プレートが重なりながら、らせん状に広がっていく。',tip:'SPSの入門種。中段〜上段で、しっかりした光と水流を。水質の安定が大事。',fact:'SPSは「Small Polyp Stony coral（小さいポリプの石のサンゴ）」の略。',
+  morphs:[{name:'オレンジ',w:4,pal:{plate:['#ff8a45','#ff5c16'],plateLo:['#c9602e','#c63e0a'],rim:['#ffd2a4','#ffb060'],polyp:['#74d86a','#3aff6a']}},
+          {name:'レッド',w:2,pal:{plate:['#e24b4b','#ff2a40'],plateLo:['#a8303a','#b01228'],rim:['#ffb0a8','#ff7a8a'],polyp:['#74d8ff','#3af0ff']}}]},
+ acropora:{name:'ミドリイシ',en:'Acropora',group:'SPS',diff:5,light:[0.7,1.1],flow:[0.5,1.0],price:320,value:0.42,grow:0.8,size:1.15,hy:45,hr:55,thumb:0.85,
+  catch:'サンゴ礁の主役',desc:'沖縄などのサンゴ礁をつくる、代表的な枝状のサンゴ。',charm:'枝先と胴体の色のコントラストは唯一無二。上級者のあこがれ。',tip:'強い光・強い水流・安定したきれいな水。3つがそろって初めて育つ。水槽が落ち着いてから挑戦しよう。',fact:'自然の海では、初夏の満月のころに一斉に産卵することで知られている。',
+  morphs:[{name:'パステル',w:4,pal:{body:['#e39ad8','#b25aff'],tip:['#8fd8ff','#38f6ff'],polyp:['#fff0ff','#e6a8ff']}},
+          {name:'グリーンスリム',w:3,pal:{body:['#7fcf8a','#3dff7a'],tip:['#b48cff','#a24dff'],polyp:['#eaffea','#caffb0']}},
+          {name:'ブルー＆ゴールド',w:2,pal:{body:['#6fa6e6','#3a8aff'],tip:['#ffd36a','#ffe23a'],polyp:['#f0f8ff','#aee0ff']}}]},
+};
+const CORAL_IDS=Object.keys(CORALS);
+const FISH={
+ clown:{name:'カクレクマノミ',price:60,max:2,speed:52,size:1.0,desc:'映画でおなじみのオレンジの人気者。丈夫で飼いやすく、サンゴ水槽の最初の魚にぴったり。',fact:'イソギンチャクだけでなく、トーチなどのサンゴに寄り添って暮らすこともあるよ。'},
+ firefish:{name:'ハタタテハゼ',price:70,max:2,speed:36,size:0.95,desc:'長い背びれをピコピコ動かす、ホバリング上手なハゼ。',fact:'びっくりすると水面から飛び出すことがあるので、本物の水槽にはフタをしよう。'},
+ yellowtang:{name:'キイロハギ',price:110,max:1,speed:66,size:1.25,desc:'あざやかなレモンイエロー。岩のコケをついばむ働き者。',fact:'ハギの仲間同士はケンカしやすいので、1匹ずつにしよう。'},
+ bluetang:{name:'ナンヨウハギ',price:140,max:1,speed:74,size:1.3,desc:'青い体に黄色い尾びれ。水槽がぱっと華やかになる。',fact:'白点病（体に小さな白い点がつく病気）にかかりやすいので、水質を安定させよう。'},
+};
+const EQ={
+ pump:[{name:'循環ポンプ',flow:0.3,price:0,desc:'最初からついている基本のポンプ。水流は弱め。'},{name:'ウェーブポンプ',flow:0.55,price:120,desc:'波のような水流をつくる。サンゴがよく揺れて元気になる。'},{name:'ウェーブポンプ×2',flow:0.8,price:260,desc:'2台で強い水流。SPSにはこのくらい欲しい。'}],
+ led:[{name:'スタンダードLED',power:0.6,price:0,desc:'観賞用の一般的なライト。ソフトコーラルなら十分。'},{name:'リーフ用LED',power:0.82,price:200,desc:'サンゴ用の強いLED。青い光も強力。'},{name:'ハイパワーLED',power:1.0,price:420,desc:'SPS水槽向けのハイパワー。水槽の下の方まで光が届く。'}],
+ skimmer:[{name:'なし',price:0},{name:'プロテインスキマー',price:150,desc:'細かい泡に汚れ（有機物）をくっつけて取り除く、海水水槽の定番機材。水が汚れにくくなる。'}],
+ cooler:[{name:'なし',price:0},{name:'水槽用クーラー',price:180,desc:'夏の水温上昇を防ぐ。サンゴは高水温が大の苦手。'}],
+ ato:[{name:'なし',price:0},{name:'自動給水器',price:160,desc:'蒸発した分の真水を自動で足してくれる。塩分（比重）が安定する。'}],
+};
+const EQ_META={led:['💡','照明'],pump:['🌊','水流'],skimmer:['🫧','ろ過'],cooler:['❄️','水温'],ato:['🚰','給水']};
+const hasSp=id=>s=>s.corals.some(c=>c.sp===id);
+const MISSIONS=[
+ {title:'最初のサンゴを迎えよう',desc:'🛒ショップで「マメスナギンチャク」を選んで、岩の上に置いてみよう。',done:s=>s.corals.length>=1,reward:30,after:'やったね！マメスナは丈夫で育てやすい、はじめての1株にぴったりのサンゴだよ。'},
+ {title:'サンゴを観察しよう',desc:'置いたサンゴをタップしてみよう。',done:s=>s.flags.tapped,reward:15,after:'触るとキュッと縮んだでしょ？ 本物のサンゴもとてもデリケート。水槽に手を入れてベタベタ触るのはNGだよ。'},
+ {title:'照明を青くしてみよう',desc:'下の🌙ボタンで照明を青に。サンゴの色の変化をじっくり見てね。',done:()=>L.m>0.95,reward:25,after:'きれいでしょ？ サンゴの多くは「蛍光タンパク質」を持っていて、青い光を受けると光って見えるんだ。この瞬間が見たくてサンゴ水槽を始める人も多いんだよ。'},
+ {title:'水槽の写真を撮ろう',desc:'📷ボタンで今の水槽を画像として保存できるよ。白でも青でも、好きな光で撮ってみよう。',done:s=>s.flags.photo,reward:15,after:'いい1枚！ 青い光の写真は、アクアリストの自慢の1枚になりがち。'},
+ {title:'2種類目のサンゴ',desc:'ツツウミヅタかディスクコーラルを迎えよう。ディスクは暗めの下の方が好きだよ。',done:s=>new Set(s.corals.map(c=>c.sp)).size>=2,reward:30,after:'サンゴは種類ごとに「好きな光の強さ」がちがう。置く前に出る緑の帯（おすすめゾーン）を参考にしてね。'},
+ {title:'魚にエサをあげよう',desc:'🍤ボタンでエサをあげてみよう。食べ残しは水を汚すから、あげすぎ注意！',done:s=>s.flags.fed,reward:20,after:'もぐもぐ！ LPS（大きなポリプのサンゴ）もエサを食べて育つよ。'},
+ {title:'水換えをしよう',desc:'「水のきれいさ」は毎日少しずつ下がっていく。🔄ボタンで水換えしよう。',done:s=>s.flags.wc,reward:30,after:'水換えは「少しずつ・定期的に」が基本。一度に全部変えるとサンゴがびっくりしちゃうんだ。'},
+ {title:'足し水をしよう',desc:'水は蒸発しても塩は残るから、塩分がだんだん濃くなる。比重が1.025を超えたら💧で真水を足そう。',done:s=>s.flags.topoff,reward:30,after:'足すのは「海水」じゃなくて「真水」。蒸発したのは水だけだからね。これ、本物の水槽でもよく間違えるポイント！'},
+ {title:'ウミキノコを育てよう',desc:'ふわふわのウミキノコを迎えよう。',done:hasSp('toadstool'),reward:40,after:'ウミキノコは大きく育つよ。成長100%になったら株分けもできる。'},
+ {title:'LPSデビュー',desc:'オープンブレインかトーチコーラルを迎えよう。LPSは大きなポリプのハードコーラル。',done:s=>s.corals.some(c=>CORALS[c.sp].group==='LPS'),reward:50,after:'LPSは骨格を持つハードコーラル。ぷるぷるの肉や長い触手が魅力だよ。'},
+ {title:'ウェーブポンプを入れよう',desc:'🛒ショップの「機材」でウェーブポンプを。水流が強いとサンゴがよく揺れて元気になるよ。',done:s=>s.eq.pump>=1,reward:40,after:'サンゴは動けないから、水流がエサや酸素を運んでくれるんだ。'},
+ {title:'株分けに挑戦',desc:'大きく育ったサンゴ（成長100%）をタップして「株分け」してみよう。',done:s=>s.flags.frag,reward:50,after:'株分け（フラグ）はサンゴ趣味の醍醐味。切った株を仲間と交換したりもするんだよ。'},
+ {title:'仲間の魚を増やそう',desc:'🛒ショップの「魚」で新しい魚を迎えよう。',done:s=>s.fish.length>=3,reward:30,after:'にぎやかになったね！ 魚を増やすと水も汚れやすくなるから、水換えも忘れずに。'},
+ {title:'照明をパワーアップ',desc:'「リーフ用LED」を導入しよう。SPSには強い光が必要なんだ。',done:s=>s.eq.led>=1,reward:60,after:'光が強くなると、弱い光が好きなディスクには強すぎることも。様子を見て下の方へ動かしてあげて。'},
+ {title:'SPS入門',desc:'コモンサンゴを迎えて、水槽の上の方に置こう。',done:hasSp('montipora'),reward:60,after:'SPSは小さなポリプの石サンゴ。水質の変化に敏感だから、こまめなお世話が大事だよ。'},
+ {title:'あこがれのミドリイシ',desc:'強い光・強い水流・きれいな水。3つがそろったらミドリイシに挑戦！ 健康度80%以上で達成。',done:s=>s.corals.some(c=>c.sp==='acropora'&&c.h>0.8),reward:120,after:'すごい！ ミドリイシを元気に育てられたら、もう立派なリーファー（サンゴ飼育者）だよ。'},
+ {title:'サンゴ図鑑コンプリート',desc:'8種類すべてのサンゴを迎えよう。',done:s=>CORAL_IDS.every(id=>s.zukan[id]),reward:150,after:'図鑑コンプリートおめでとう！ あとは色違い（カラー）集めや、理想のレイアウトづくりを楽しんでね。'},
+];
+
+/* ============================ 状態・保存 ============================ */
+const SAVE_KEY='reef_beginner_v1';
+const DEF=()=>({v:1,started:false,day:1,time:9,cp:40,q:92,sal:1.024,temp:25.5,heat:0,fedT:0,eq:{pump:0,led:0,skimmer:0,cooler:0,ato:0},corals:[],fish:[{sp:'clown'},{sp:'clown'}],mi:0,flags:{},zukan:{},fishZ:{clown:true},nextId:1,frags:0,lost:[]});
+let DEMO=Q.has('demo');
+function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&s.v===1){const d=DEF();return Object.assign(d,s,{eq:Object.assign(d.eq,s.eq||{}),flags:s.flags||{},zukan:s.zukan||{},lost:s.lost||[]});}}catch(e){}return null;}
+function save(){if(DEMO)return;try{const o=Object.assign({},S,{corals:S.corals.map(({_geo,_ev,ret,...c})=>c)});localStorage.setItem(SAVE_KEY,JSON.stringify(o));}catch(e){}}
+let S=load()||DEF();
+
+/* ============================ キャンバス ============================ */
+const cv=document.getElementById('c'); const MC=cv.getContext('2d'); let ctx=MC;
+let DPR=1,SC=1,OX=0,OY=0;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);const cw=innerWidth,ch=innerHeight;cv.width=Math.round(cw*DPR);cv.height=Math.round(ch*DPR);SC=Math.min(cw/W,ch/H);OX=(cw-W*SC)/2;OY=(ch-H*SC)/2;buildEnv();}
+const toL=e=>({x:(e.clientX-OX)/SC,y:(e.clientY-OY)/SC});
+
+/* ============================ 光（白⇔青をなめらかに） ============================
+   L.m = 青の割合(0=白,1=青) / L.b = 明るさ。目標値(tm,tb)へ臨界減衰ばねで近づく
+   → 動き始めと止まり際がゆっくりな「フェード」になる。サンゴの色も毎フレーム L から計算。 */
+const L={m:0,b:1,tm:0,tb:1,vm:0,vb:0,cycle:false};
+const BLUE_F=[0.13,0.22,0.82];
+function lit(c,m=L.m,b=L.b){return[c[0]*(1+(BLUE_F[0]-1)*m)*b,c[1]*(1+(BLUE_F[1]-1)*m)*b,c[2]*(1+(BLUE_F[2]-1)*m)*b];}
+function damp(cur,tgt,vk,st,dt){const om=2/st,x=om*dt,ex=1/(1+x+0.48*x*x+0.235*x*x*x);const ch=cur-tgt;const tp=(L[vk]+om*ch)*dt;L[vk]=(L[vk]-om*tp)*ex;let o=tgt+(ch+tp)*ex;if((tgt-cur>0)===(o>tgt)){o=tgt;L[vk]=0;}return o;}
+function schedule(h){ // 1日の照明スケジュール（本物のサンゴ水槽の点灯パターンを簡略化）
+ const r=(a,b)=>sstep(clamp((h-a)/(b-a),0,1));
+ let b=0.2+0.8*r(6,7.5)-0.8*r(21,22.5); let m=1-r(7.5,10)+r(16,18.5);
+ return{m:clamp(m,0,1),b:clamp(b,0.2,1)};}
+function setLight(v){L.cycle=false;L.tm=v;L.tb=1;syncLightUI();}
+
+/* ============================ 環境（岩・砂）の事前描画 ============================ */
+const sandTop=x=>612+6*Math.sin(x*0.012)+4*Math.sin(x*0.031+1);
+const ROCK_DEF=[
+ {x0:820,x1:1185,top:440,seed:31,peaks:[[0.3,1,0.28],[0.74,0.78,0.22]]},
+ {x0:15,x1:525,top:345,seed:11,peaks:[[0.28,1,0.27],[0.7,0.7,0.24]]},
+ {x0:515,x1:845,top:268,seed:21,peaks:[[0.44,1,0.3],[0.64,0.88,0.24]]},
+ {x0:380,x1:625,top:522,seed:41,peaks:[[0.5,1,0.36]]},
+];
+const ROCKS=ROCK_DEF.map(d=>{const r=rng(d.seed);const pts=[];const N=46,base=662;
+ for(let i=0;i<=N;i++){const u=i/N;let p=0;for(const[c,h,w]of d.peaks)p=Math.max(p,h*Math.exp(-(((u-c)/w)**2)));p*=Math.pow(Math.sin(Math.PI*u),0.5);
+  pts.push([lerp(d.x0,d.x1,u)+(r()-0.5)*5,base-(base-d.top)*p+(r()-0.5)*7+(Math.sin(u*13+d.seed)*7+Math.sin(u*31+d.seed*2)*4)*Math.min(1,p*3)]);}
+ const path=new Path2D();path.moveTo(d.x0,base+40);path.lineTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<pts.length-1;i++){const mx=(pts[i][0]+pts[i+1][0])/2,my=(pts[i][1]+pts[i+1][1])/2;path.quadraticCurveTo(pts[i][0],pts[i][1],mx,my);}
+ path.lineTo(d.x1,base+40);path.closePath();return Object.assign({},d,{pts,path});});
+function surfaceY(x){let y=sandTop(x);for(const rk of ROCKS){if(x<rk.x0||x>rk.x1)continue;const u=(x-rk.x0)/(rk.x1-rk.x0)*(rk.pts.length-1);const i=Math.floor(u),f=u-i;const a=rk.pts[i],b=rk.pts[Math.min(i+1,rk.pts.length-1)];y=Math.min(y,lerp(a[1],b[1],f));}return y;}
+function onRock(x,y){MC.save();MC.setTransform(1,0,0,1,0,0);let hit=false;for(const rk of ROCKS)if(MC.isPointInPath(rk.path,x,y)){hit=true;break;}MC.restore();return hit;}
+const ENV={day:null,night:null,x0:-420,y0:-10,w:W+840,h:H+60};
+function buildEnv(){const k=Math.min(1.7,SC*DPR);ENV.day=renderEnv(0,k);ENV.night=renderEnv(1,k);}
+function renderEnv(m,k){
+ const c=document.createElement('canvas');c.width=Math.ceil(ENV.w*k);c.height=Math.ceil(ENV.h*k);const g=c.getContext('2d');
+ g.setTransform(k,0,0,k,-ENV.x0*k,-ENV.y0*k);
+ const T=(h,a=1)=>rgba(lit(hx(h),m,1),a);
+ const CL=(h,a=1)=>rgba(m?mixc(lit(hx(h),1,1),hx('#9a4dff'),0.32):hx(h),a); // 石灰藻（夜はほんのり蛍光）
+ for(const rk of ROCKS){const r=rng(rk.seed*7+3);
+  g.save();g.clip(rk.path);
+  const gr=g.createLinearGradient(0,rk.top,0,662);gr.addColorStop(0,T('#d6c2ad'));gr.addColorStop(0.45,T('#b09682'));gr.addColorStop(1,T('#6f5d55'));g.fillStyle=gr;g.fillRect(rk.x0-20,rk.top-30,rk.x1-rk.x0+40,720-rk.top);
+  const bw=rk.x1-rk.x0,bh=662-rk.top;
+  for(let i=0;i<60;i++){const x=rk.x0+r()*bw,y=rk.top+r()*bh;g.fillStyle=r()<0.5?T('#3a2c28',0.13):T('#fff4e6',0.12);g.beginPath();g.ellipse(x,y,10+r()*34,6+r()*18,r()*3,0,TAU);g.fill();}
+  const cols=['#e58fb4','#c77dd8','#f2a6c4','#b58ae0','#e7a0a0'];
+  for(let i=0;i<Math.floor(bw*0.55);i++){const x=rk.x0+r()*bw,y=rk.top+r()*bh*0.85;g.fillStyle=CL(cols[(r()*cols.length)|0],0.45+r()*0.4);g.beginPath();g.ellipse(x,y,2+r()*9,1.5+r()*5,r()*3,0,TAU);g.fill();}
+  for(let i=0;i<Math.floor(bw*0.22);i++){const x=rk.x0+r()*bw,y=rk.top+10+r()*bh;const s=2+r()*5;g.fillStyle=T('#fff0e0',0.25);g.beginPath();g.ellipse(x,y-1,s*1.1,s*0.7,0,0,TAU);g.fill();g.fillStyle=T('#3d2e2c',0.7);g.beginPath();g.ellipse(x,y,s,s*0.6,0,0,TAU);g.fill();}
+  for(let i=0;i<bw*1.4;i++){g.fillStyle=r()<0.5?T('#ffffff',0.25):T('#40302c',0.3);g.fillRect(rk.x0+r()*bw,rk.top+r()*bh,1.2,1.2);}
+  const sh=g.createLinearGradient(0,540,0,662);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,m?'rgba(0,0,20,0.5)':'rgba(40,30,40,0.35)');g.fillStyle=sh;g.fillRect(rk.x0-10,500,bw+20,200);
+  g.restore();
+  g.strokeStyle=m?'rgba(150,170,255,0.25)':'rgba(255,255,255,0.45)';g.lineWidth=2.2;g.beginPath();g.moveTo(rk.pts[1][0],rk.pts[1][1]+2);for(let i=2;i<rk.pts.length-1;i++)g.lineTo(rk.pts[i][0],rk.pts[i][1]+2);g.stroke();
+ }
+ // 砂
+ g.beginPath();g.moveTo(ENV.x0,760);for(let x=ENV.x0;x<=ENV.x0+ENV.w;x+=10)g.lineTo(x,sandTop(x));g.lineTo(ENV.x0+ENV.w,760);g.closePath();
+ const sg=g.createLinearGradient(0,600,0,700);sg.addColorStop(0,T('#f7ecd4'));sg.addColorStop(1,T('#d8c29a'));g.fillStyle=sg;g.fill();
+ for(const rk of ROCKS){const cx=(rk.x0+rk.x1)/2;const rg=g.createRadialGradient(cx,sandTop(cx)+6,10,cx,sandTop(cx)+6,(rk.x1-rk.x0)*0.55);rg.addColorStop(0,m?'rgba(0,0,30,0.4)':'rgba(70,50,30,0.22)');rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.beginPath();g.ellipse(cx,sandTop(cx)+8,(rk.x1-rk.x0)*0.55,18,0,0,TAU);g.fill();}
+ const r=rng(99);const gc=['#ffffff','#e9d8b4','#c9b48c','#f3c9c9','#bdb3a6'];
+ for(let i=0;i<2600;i++){const x=ENV.x0+r()*ENV.w,y=sandTop(x)+2+r()*80;g.fillStyle=T(gc[(r()*gc.length)|0],0.55);g.beginPath();g.arc(x,y,0.5+r()*1.2,0,TAU);g.fill();}
+ for(let i=0;i<16;i++){const x=r()*W,y=sandTop(x)+14+r()*26,s=4+r()*4,a=r()*0.8-0.4;g.save();g.translate(x,y);g.rotate(a);g.fillStyle=T(r()<0.5?'#fff3ea':'#ffd9cf');g.beginPath();g.moveTo(0,0);g.arc(0,0,s,Math.PI*1.05,Math.PI*1.95);g.closePath();g.fill();g.strokeStyle=T('#d8b9a8');g.lineWidth=0.6;for(let k=1;k<5;k++){const aa=Math.PI*(1.05+k*0.18);g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(aa)*s,Math.sin(aa)*s);g.stroke();}g.restore();}
+ g.strokeStyle=m?'rgba(160,180,255,0.18)':'rgba(255,255,255,0.6)';g.lineWidth=1.5;g.beginPath();for(let x=ENV.x0;x<=ENV.x0+ENV.w;x+=10)x===ENV.x0?g.moveTo(x,sandTop(x)+1):g.lineTo(x,sandTop(x)+1);g.stroke();
+ return c;}
+// 砂と岩の表面（コースティクス用）
+const SURF=new Path2D();for(const rk of ROCKS)SURF.addPath(rk.path);{const p=new Path2D();p.moveTo(-500,760);for(let x=-500;x<=W+500;x+=10)p.lineTo(x,sandTop(x));p.lineTo(W+500,760);p.closePath();SURF.addPath(p);}
+
+/* コースティクス（水面のゆらめきが底に映る光）：継ぎ目のないボロノイ模様を生成 */
+function makeCaustic(col){const S=320,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');const r=rng(7);const N=20,pts=[];for(let i=0;i<N;i++)pts.push([r()*S,r()*S]);
+ const img=g.createImageData(S,S);const d=img.data;
+ for(let y=0;y<S;y++)for(let x=0;x<S;x++){let d1=1e9,d2=1e9;for(const p of pts){let dx=Math.abs(x-p[0]);dx=Math.min(dx,S-dx);let dy=Math.abs(y-p[1]);dy=Math.min(dy,S-dy);const dd=dx*dx+dy*dy;if(dd<d1){d2=d1;d1=dd;}else if(dd<d2)d2=dd;}
+  const e=Math.sqrt(d2)-Math.sqrt(d1);const v=Math.pow(Math.exp(-e*0.26),2);const i=(y*S+x)*4;d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=v*190;}
+ g.putImageData(img,0,0);const c2=document.createElement('canvas');c2.width=c2.height=S;const g2=c2.getContext('2d');g2.filter='blur(1.6px)';g2.drawImage(c,0,0);return c2;}
+let CAU_D,CAU_N,PAT_D,PAT_N;
+function initCaustics(){CAU_D=makeCaustic([255,252,235]);CAU_N=makeCaustic([110,130,255]);PAT_D=MC.createPattern(CAU_D,'repeat');PAT_N=MC.createPattern(CAU_N,'repeat');}
+
+/* 発光スプライト（青い光の時の蛍光のにじみ） */
+const GS=new Map();
+function gsprite(c){const k=(c[0]|0)+','+(c[1]|0)+','+(c[2]|0);let s=GS.get(k);if(!s){s=document.createElement('canvas');s.width=s.height=64;const g=s.getContext('2d');const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,`rgba(${k},0.9)`);gr.addColorStop(0.3,`rgba(${k},0.45)`);gr.addColorStop(0.65,`rgba(${k},0.12)`);gr.addColorStop(1,`rgba(${k},0)`);g.fillStyle=gr;g.fillRect(0,0,64,64);GS.set(k,s);}return s;}
+function glow(x,y,rx,ry,c,a){if(!c||a<0.01)return;ctx.globalAlpha=Math.min(1,a*1.35);ctx.drawImage(gsprite(c),x-rx,y-ry,rx*2,ry*2);}
+function ep(x,y,rx,ry,rot=0){rx=Math.max(0.05,rx);ry=Math.max(0.05,ry);ctx.moveTo(x+rx*Math.cos(rot),y+rx*Math.sin(rot));ctx.ellipse(x,y,rx,ry,rot,0,TAU);}
+
+/* ============================ サンゴの描画 ============================ */
+const PALE=[236,228,214],PALE_F=[150,158,205];
+const bleachOf=c=>c.dead?0:clamp((0.5-c.h)/0.4,0,1);
+const SKEL=[214,208,196],ALGAE=[140,134,96],MELT=[128,104,78];
+const isSoft=c=>CORALS[c.sp].group==='ソフトコーラル';
+function deadCol(c){if(isSoft(c))return MELT;return mixc(SKEL,ALGAE,Math.min(1,(S.day-(c.deadDay||S.day))/3)*0.65);}
+function palOf(c){const mo=CORALS[c.sp].morphs[c.morph];if(c.dead){const dc=deadCol(c);const P={_fa:0,_day:(1-L.m)*L.b*0.5,_a:{}};for(const key in mo.pal){const col=lit(mixc(dc,hx(mo.pal[key][0]),0.12));P[key]=rgba(col);P._a[key]=col;}return P;}const bl=bleachOf(c);const k=L.m*L.b;const P={_fa:k*(1-bl),_day:(1-L.m)*L.b,_a:{}};
+ for(const key in mo.pal){const e=mo.pal[key];let d=hx(e[0]);if(bl)d=mixc(d,PALE,bl);let col=lit(d);if(e[1]){let f=hx(e[1]);if(bl)f=mixc(f,PALE_F,bl);col=mixc(col,f,k);P[key+'_g']=hx(e[1]);}P[key]=rgba(col);P._a[key]=col;}
+ return P;}
+const coralScale=c=>1.32*CORALS[c.sp].size*(0.55+0.45*Math.min(c.g,1.25));
+let SW=1; // 水流による揺れの大きさ
+const GEO={},R={};
+function geo(c){if(!c._geo)c._geo=GEO[c.sp](rng(c.seed));return c._geo;}
+function gloss(x,y,rx,ry,P,a=0.3){if(P._day<0.05)return;ctx.fillStyle=`rgba(255,255,255,${a*P._day})`;ctx.beginPath();ep(x,y,rx,ry);ctx.fill();}
+function additive(fn){ctx.globalCompositeOperation='lighter';fn();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;}
+
+GEO.zoa=r=>{const ps=[];for(let i=0;i<26;i++){const a=r()*TAU,rad=i<3?r()*8:8+Math.sqrt(r())*34;ps.push({x:Math.cos(a)*rad,y:Math.sin(a)*rad*0.42,h:7+r()*9,sz:6.5+r()*2.5,ph:r()*TAU,d:rad});}ps.sort((a,b)=>a.d-b.d);return{ps};};
+R.zoa=(c,P,t,G)=>{const n=Math.min(G.ps.length,Math.round(5+c.g*17));const open=1-c.ret*0.8;const list=G.ps.slice(0,n).sort((a,b)=>a.y-b.y);
+ ctx.fillStyle=P.col;ctx.beginPath();ep(0,2,14+Math.min(n,22)*1.4,6+n*0.25);ctx.fill();
+ const tops=[];ctx.lineCap='round';
+ for(const p of list){const sw=Math.sin(t*1.3+p.ph)*SW*1.6;const hh=p.h*(0.45+0.55*open);const tx=p.x+sw,ty=p.y-hh;
+  ctx.strokeStyle=P.col;ctx.lineWidth=p.sz*0.95;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.quadraticCurveTo(p.x+sw*0.2,p.y-hh*0.5,tx,ty);ctx.stroke();
+  const rx=p.sz*(0.5+0.7*open),ry=rx*0.52;
+  if(open>0.25){ctx.fillStyle=P.skirt;ctx.beginPath();for(let k=0;k<12;k++){const a=k/12*TAU+p.ph;ep(tx+Math.cos(a)*rx*0.95,ty+Math.sin(a)*ry*0.95,rx*0.3,ry*0.4,a);}ctx.fill();}
+  ctx.fillStyle=P.disc;ctx.beginPath();ep(tx,ty,rx*0.8,ry*0.8);ctx.fill();
+  ctx.fillStyle=P.mouth;ctx.beginPath();ep(tx,ty,rx*0.26,ry*0.26);ctx.fill();
+  gloss(tx-rx*0.3,ty-ry*0.38,rx*0.24,ry*0.15,P,0.45);tops.push(tx,ty,rx);}
+ if(P._fa>0.02)additive(()=>{for(let i=0;i<tops.length;i+=3){glow(tops[i],tops[i+1],tops[i+2]*2.6,tops[i+2]*1.7,P.disc_g,P._fa*0.5);glow(tops[i],tops[i+1],tops[i+2]*1.4,tops[i+2]*0.9,P.skirt_g,P._fa*0.35);}});};
+
+GEO.gsp=r=>{const mat=[];const N=16;for(let i=0;i<N;i++){const a=i/N*TAU,rr=44*(0.78+0.22*r());mat.push([Math.cos(a)*rr,Math.sin(a)*rr*0.36-2]);}
+ const ps=[];for(let i=0;i<90;i++){const a=r()*TAU,rad=Math.sqrt(r());ps.push({x:Math.cos(a)*rad*38,y:Math.sin(a)*rad*13-3,len:6+r()*8,ph:r()*TAU,d:rad});}ps.sort((a,b)=>a.d-b.d);return{mat,ps};};
+R.gsp=(c,P,t,G)=>{const n=Math.min(G.ps.length,Math.round(25+c.g*60));const open=1-c.ret*0.85;const ms=0.6+0.4*Math.min(1.2,c.g);const m=G.mat;
+ const mid=(a,b)=>[(a[0]+b[0])/2*ms,(a[1]+b[1])/2*ms];
+ ctx.fillStyle=P.mat;ctx.beginPath();let s0=mid(m[m.length-1],m[0]);ctx.moveTo(s0[0],s0[1]);for(let i=0;i<m.length;i++){const q=mid(m[i],m[(i+1)%m.length]);ctx.quadraticCurveTo(m[i][0]*ms,m[i][1]*ms,q[0],q[1]);}ctx.fill();
+ ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=2;ctx.stroke();
+ const list=G.ps.slice(0,n),tips=[];ctx.lineCap='round';
+ ctx.strokeStyle=P.stalk;ctx.lineWidth=1.8;ctx.beginPath();
+ for(const p of list){const sw=Math.sin(t*1.5+p.ph+p.x*0.05)*SW*2.4;const x=p.x*ms,y=p.y*ms;const tx=x+sw*open,ty=y-p.len*open;ctx.moveTo(x,y);ctx.lineTo(tx,ty);tips.push(tx,ty);}ctx.stroke();
+ if(open>0.2){const tl=3.6*open;ctx.strokeStyle=P.tent;ctx.lineWidth=1.35;ctx.beginPath();for(let i=0;i<tips.length;i+=2){for(let k=0;k<8;k++){const a=k/8*TAU+i;ctx.moveTo(tips[i],tips[i+1]);ctx.lineTo(tips[i]+Math.cos(a)*tl,tips[i+1]+Math.sin(a)*tl*0.62);}}ctx.stroke();}
+ ctx.fillStyle=P.center;ctx.beginPath();for(let i=0;i<tips.length;i+=2)ep(tips[i],tips[i+1],0.5+1.0*open,0.4+0.8*open);ctx.fill();
+ if(P._fa>0.02)additive(()=>{glow(0,-8,52*ms,22*ms,P.tent_g,P._fa*0.55);for(let i=0;i<tips.length;i+=8)glow(tips[i],tips[i+1],8,6,P.tent_g,P._fa*0.5);});};
+
+GEO.mushroom=r=>({d:[[0,-2],[-22,2],[21,0],[-9,-13],[12,-15]].map(([x,y],i)=>({x:x+(r()-0.5)*4,y,r:16+r()*6-(i>2?3:0),ph:r()*TAU,rot:(r()-0.5)*0.4,spots:Array.from({length:10},()=>[r()*TAU,0.25+r()*0.6])}))});
+R.mushroom=(c,P,t,G)=>{const n=Math.min(5,1+Math.floor(c.g*3.9));const open=0.72+0.28*(1-c.ret);const ds=G.d.slice(0,n).sort((a,b)=>a.y-b.y);
+ for(const d of ds){const rx=d.r*open*(1+0.03*Math.sin(t*1.1+d.ph)),ry=rx*0.58;
+  ctx.fillStyle=P.stripe;ctx.beginPath();ep(d.x,d.y+1,rx*0.35,ry*0.3);ctx.fill();
+  ctx.save();ctx.translate(d.x,d.y-5);ctx.rotate(d.rot*0.3);
+  ctx.fillStyle=P.disc;ctx.beginPath();for(let k=0;k<=28;k++){const a=k/28*TAU,rr=1+0.05*Math.sin(a*6+d.ph+t*0.6);const x=Math.cos(a)*rx*rr,y=Math.sin(a)*ry*rr;k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.fill();
+  ctx.strokeStyle=P.stripe;ctx.globalAlpha=0.55;ctx.lineWidth=1.1;ctx.beginPath();for(let k=0;k<18;k++){const a=k/18*TAU;ctx.moveTo(Math.cos(a)*rx*0.2,Math.sin(a)*ry*0.2);ctx.lineTo(Math.cos(a)*rx*0.9,Math.sin(a)*ry*0.9);}ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle=P.spot;ctx.beginPath();for(const[a,rr]of d.spots)ep(Math.cos(a)*rx*rr,Math.sin(a)*ry*rr,1.7,1.2);ctx.fill();
+  ctx.strokeStyle=P.spot;ctx.globalAlpha=0.5;ctx.lineWidth=1.4;ctx.beginPath();ep(0,0,rx*0.96,ry*0.96);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle=P.mouth;ctx.beginPath();ep(0,0,2.4,1.6);ctx.fill();
+  gloss(-rx*0.28,-ry*0.42,rx*0.34,ry*0.16,P,0.35);
+  if(P._fa>0.02)additive(()=>{glow(0,0,rx*1.6,ry*1.7,P.disc_g,P._fa*0.45);for(const[a,rr]of d.spots)glow(Math.cos(a)*rx*rr,Math.sin(a)*ry*rr,5,4,P.spot_g,P._fa*0.6);});
+  ctx.restore();}};
+
+GEO.toadstool=r=>({ph:r()*TAU,lean:(r()-0.5)*0.3,cap:Array.from({length:30},()=>1+(r()-0.5)*0.12),ps:Array.from({length:130},()=>{const a=r()*TAU,rr=Math.sqrt(r());return{x:Math.cos(a)*rr,y:Math.sin(a)*rr,l:0.7+r()*0.6,ph:r()*TAU};}).sort((a,b)=>a.y-b.y)});
+function capPath(cx,cy,rx,ry,wv){const N=wv.length;for(let i=0;i<=N;i++){const a=i/N*TAU,k=wv[i%N];const x=cx+Math.cos(a)*rx*k,y=cy+Math.sin(a)*ry*k;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();}
+R.toadstool=(c,P,t,G)=>{const open=1-c.ret*0.9;const sh=42;const sw=Math.sin(t*0.7+G.ph)*SW*3+G.lean*20;const cx=sw,cy=-sh,rx=46,ry=15;
+ ctx.fillStyle=P.stalk;ctx.beginPath();ctx.moveTo(-15,2);ctx.bezierCurveTo(-13,-sh*0.4,cx-12,cy+10,cx-11,cy+4);ctx.lineTo(cx+11,cy+4);ctx.bezierCurveTo(cx+12,cy+10,13,-sh*0.4,15,2);ctx.closePath();ctx.fill();
+ ctx.strokeStyle='rgba(60,40,20,0.12)';ctx.lineWidth=1.2;ctx.beginPath();for(const k of[-6,0,6]){ctx.moveTo(k*1.4,0);ctx.quadraticCurveTo(k,-sh*0.5,cx+k,cy+8);}ctx.stroke();
+ if(P._day>0.05){ctx.fillStyle=`rgba(255,255,255,${0.25*P._day})`;ctx.beginPath();ctx.moveTo(-9,0);ctx.quadraticCurveTo(-8,-sh*0.5,cx-6,cy+8);ctx.lineTo(cx-2,cy+8);ctx.quadraticCurveTo(-3,-sh*0.5,-4,0);ctx.fill();}
+ ctx.fillStyle=P.capUnder;ctx.beginPath();capPath(cx,cy+4,rx,ry,G.cap);ctx.fill();
+ ctx.fillStyle=P.cap;ctx.beginPath();capPath(cx,cy,rx,ry,G.cap);ctx.fill();
+ const tips=[];
+ if(open>0.1){ctx.strokeStyle=P.polyp;ctx.lineWidth=1.6;ctx.lineCap='round';ctx.beginPath();for(const p of G.ps){const px=cx+p.x*rx*0.9,py=cy+p.y*ry*0.82;const s2=Math.sin(t*1.8+p.ph)*SW*1.6;const ex=px+s2*open,ey=py-7*p.l*open;ctx.moveTo(px,py);ctx.lineTo(ex,ey);tips.push(ex,ey);}ctx.stroke();
+  ctx.fillStyle=P.polypTip;ctx.beginPath();for(let i=0;i<tips.length;i+=2)ep(tips[i],tips[i+1],1.3*open,1.1*open);ctx.fill();}
+ gloss(cx-rx*0.35,cy-ry*0.35,rx*0.3,ry*0.2,P,0.3);
+ if(P._fa>0.02)additive(()=>{glow(cx,cy-5,rx*1.35,ry*2.4,P.polyp_g,P._fa*0.55);for(let i=0;i<tips.length;i+=10)glow(tips[i],tips[i+1],6,6,P.polypTip_g,P._fa*0.6);});};
+
+GEO.brain=r=>({ph:r()*TAU,w:Array.from({length:32},()=>1+(r()-0.5)*0.1)});
+R.brain=(c,P,t,G)=>{const open=0.8+0.2*(1-c.ret);const br=1+0.04*Math.sin(t*0.9+G.ph);const rx=36*open*br,ry=21*open*br,cy=-12;
+ ctx.fillStyle=P.skel;ctx.beginPath();ep(0,-2,rx*0.72,ry*0.5);ctx.fill();
+ const gr=ctx.createRadialGradient(-rx*0.25,cy-ry*0.4,2,0,cy,rx*1.05);gr.addColorStop(0,P.fleshHi);gr.addColorStop(0.55,P.flesh);gr.addColorStop(1,P.fleshLo);
+ ctx.fillStyle=gr;ctx.beginPath();capPath(0,cy,rx,ry,G.w);ctx.fill();
+ ctx.strokeStyle=P.rim;ctx.lineWidth=4.2;ctx.beginPath();capPath(0,cy,rx*0.96,ry*0.94,G.w);ctx.stroke();
+ ctx.strokeStyle=P.groove;ctx.lineWidth=2.3;ctx.globalAlpha=0.75;ctx.beginPath();for(let k=0;k<=24;k++){const u=k/24;const x=lerp(-rx*0.58,rx*0.58,u),y=cy+Math.sin(u*TAU*1.5+G.ph)*ry*0.22;k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+ ctx.beginPath();ep(0,cy,rx*0.7,ry*0.62);ctx.stroke();ctx.globalAlpha=1;
+ gloss(-rx*0.3,cy-ry*0.45,rx*0.36,ry*0.2,P,0.4);gloss(rx*0.25,cy-ry*0.2,rx*0.1,ry*0.08,P,0.35);
+ if(P._fa>0.02)additive(()=>{glow(0,cy,rx*1.3,ry*1.5,P.flesh_g,P._fa*0.35);for(let k=0;k<16;k++){const a=k/16*TAU;glow(Math.cos(a)*rx*0.96,cy+Math.sin(a)*ry*0.94,10,8,P.rim_g,P._fa*0.55);}});};
+
+GEO.torch=r=>({heads:[[0,-36],[-25,-27],[24,-31]].map(([x,y])=>({x:x+(r()-0.5)*6,y:y+(r()-0.5)*6,t:Array.from({length:22},(_,i)=>({a:-Math.PI*0.95+(i/21)*Math.PI*0.9+(r()-0.5)*0.2,len:24+r()*16,ph:r()*TAU}))}))});
+R.torch=(c,P,t,G)=>{const nh=Math.min(3,1+Math.floor(c.g*2.3));const open=0.3+0.7*(1-c.ret);
+ ctx.strokeStyle=P.skel;ctx.lineCap='round';ctx.lineWidth=8;ctx.beginPath();for(let i=0;i<nh;i++){const h=G.heads[i];ctx.moveTo(h.x*0.3,2);ctx.quadraticCurveTo(h.x*0.6,h.y*0.5,h.x,h.y+6);}ctx.stroke();
+ const order=[1,2,0].filter(i=>i<nh);
+ for(const i of order){const h=G.heads[i];const tp=[];ctx.beginPath();
+  for(const e of h.t){const wv=Math.sin(t*1.6+e.ph)*SW*7+SW*4;const l1=e.len*open;const ex=h.x+Math.cos(e.a)*l1+wv*open,ey=h.y+Math.sin(e.a)*l1*0.9+Math.abs(wv)*0.2;const qx=h.x+Math.cos(e.a)*l1*0.5+wv*0.3,qy=h.y+Math.sin(e.a)*l1*0.5;ctx.moveTo(h.x,h.y);ctx.quadraticCurveTo(qx,qy,ex,ey);tp.push(ex,ey,qx,qy);}
+  ctx.strokeStyle=P.body;ctx.lineWidth=5.6;ctx.stroke();
+  ctx.strokeStyle=P.bodyHi;ctx.lineWidth=1.8;ctx.globalAlpha=0.5;ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle=P.tip;ctx.beginPath();for(let k=0;k<tp.length;k+=4)ep(tp[k],tp[k+1],3.7*open+0.6,3.3*open+0.6);ctx.fill();
+  if(P._day>0.05){ctx.fillStyle=`rgba(255,255,255,${0.5*P._day})`;ctx.beginPath();for(let k=0;k<tp.length;k+=4)ep(tp[k]-1.2,tp[k+1]-1.2,1.1,0.8);ctx.fill();}
+  if(P._fa>0.02)additive(()=>{for(let k=0;k<tp.length;k+=4){glow(tp[k],tp[k+1],11,11,P.tip_g,P._fa*0.75);if(k%8===0)glow(tp[k+2],tp[k+3],13,13,P.body_g,P._fa*0.2);}});}};
+
+GEO.montipora=r=>({p:[[0,-6,34,0.05],[-20,-22,29,-0.12],[18,-37,26,0.1],[-8,-51,22,-0.05],[16,-62,17,0.12]].map(([x,y,rx,rot])=>({x,y,rx,rot,dots:Array.from({length:28},()=>[r()*2-1,r()*2-1])}))});
+R.montipora=(c,P,t,G)=>{const n=Math.min(5,1+Math.floor(c.g*3.9));
+ ctx.strokeStyle=P.plateLo;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,2);ctx.lineTo(G.p[n-1].x*0.5,G.p[n-1].y*0.8);ctx.stroke();
+ for(let i=0;i<n;i++){const p=G.p[i],ry=p.rx*0.3;ctx.save();ctx.translate(p.x,p.y+Math.sin(t*0.5+i)*0.3);ctx.rotate(p.rot);
+  ctx.fillStyle=P.plateLo;ctx.beginPath();ep(0,3,p.rx,ry);ctx.fill();
+  ctx.fillStyle=P.plate;ctx.beginPath();ep(0,0,p.rx,ry);ctx.fill();
+  ctx.strokeStyle=P.rim;ctx.globalAlpha=0.4;ctx.lineWidth=1;ctx.beginPath();ep(0,0,p.rx*0.7,ry*0.7);ep(0,0,p.rx*0.42,ry*0.42);ctx.stroke();ctx.globalAlpha=1;
+  ctx.lineWidth=2.2;ctx.beginPath();ep(0,0,p.rx,ry);ctx.stroke();
+  ctx.fillStyle=P.polyp;ctx.beginPath();for(const[u,v]of p.dots)if(u*u+v*v<0.85)ep(u*p.rx*0.9,v*ry*0.9,1.15,0.8);ctx.fill();
+  gloss(-p.rx*0.3,-ry*0.35,p.rx*0.35,ry*0.25,P,0.35);
+  if(P._fa>0.02)additive(()=>{glow(0,0,p.rx*1.3,ry*2.6,P.plate_g,P._fa*0.3);for(let k=0;k<p.dots.length;k+=2){const[u,v]=p.dots[k];if(u*u+v*v<0.85)glow(u*p.rx*0.9,v*ry*0.9,4.5,4,P.polyp_g,P._fa*0.7);}});
+  ctx.restore();}};
+
+GEO.acropora=r=>{const segs=[];function br(x,y,a,len,w,d){const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len;const s={x1:x,y1:y,x2,y2,w,d,kids:0};segs.push(s);
+  if(d<4){const k=d<2?2+(r()<0.5?1:0):(r()<0.75?2:1);for(let i=0;i<k;i++){let na=a+(i-(k-1)/2)*0.55+(r()-0.5)*0.35;na=lerp(na,-Math.PI/2,0.18);s.kids++;br(x2,y2,na,len*(0.74+r()*0.12),w*0.72,d+1);}}}
+ for(const a0 of[-Math.PI/2-0.6,-Math.PI/2+0.05,-Math.PI/2+0.62])br(0,0,a0+(r()-0.5)*0.2,17+r()*4,11,0);return{segs};};
+R.acropora=(c,P,t,G)=>{const md=Math.min(4,1+Math.floor(c.g*3.3));ctx.rotate(Math.sin(t*0.6+c.seed)*0.012*SW);ctx.lineCap='round';
+ ctx.fillStyle=P.body;ctx.beginPath();ep(0,1,20,6);ctx.fill();
+ const segs=G.segs.filter(s=>s.d<=md);
+ for(let d=0;d<=md;d++){ctx.strokeStyle=rgba(mixc(P._a.body,P._a.tip,Math.pow(d/md,2)*0.55));ctx.lineWidth=11*Math.pow(0.74,d);ctx.beginPath();for(const s of segs)if(s.d===d){ctx.moveTo(s.x1,s.y1);ctx.lineTo(s.x2,s.y2);}ctx.stroke();}
+ if(P._day>0.05){ctx.strokeStyle=`rgba(255,255,255,${0.2*P._day})`;for(let d=0;d<=md;d++){ctx.lineWidth=3.4*Math.pow(0.74,d);ctx.beginPath();for(const s of segs)if(s.d===d){ctx.moveTo(s.x1-1,s.y1-0.5);ctx.lineTo(s.x2-1,s.y2-0.5);}ctx.stroke();}}
+ ctx.fillStyle=P.polyp;ctx.beginPath();for(const s of segs){for(const u of[0.3,0.65]){const x=lerp(s.x1,s.x2,u),y=lerp(s.y1,s.y2,u);ep(x+s.w*0.45,y,0.9,0.9);ep(x-s.w*0.45,y+1,0.9,0.9);}}ctx.fill();
+ const tips=segs.filter(s=>s.d===md||s.kids===0);
+ ctx.fillStyle=P.tip;ctx.beginPath();for(const s of tips)ep(s.x2,s.y2,s.w*0.62+0.8,s.w*0.62+0.8);ctx.fill();
+ if(P._fa>0.02)additive(()=>{for(const s of tips)glow(s.x2,s.y2,9,9,P.tip_g,P._fa*0.8);for(let i=0;i<segs.length;i+=3){const s=segs[i];glow((s.x1+s.x2)/2,(s.y1+s.y2)/2,11,11,P.body_g,P._fa*0.25);}});};
+
+function drawCoral(c,t){const s=coralScale(c)*(c.dead&&c.melt?1-c.melt*0.75:1);ctx.save();ctx.translate(c.x,c.y);
+ ctx.fillStyle=`rgba(10,20,40,${0.16*L.b})`;ctx.beginPath();ep(0,3,28*s,6*s);ctx.fill();
+ ctx.scale(s,s);R[c.sp](c,palOf(c),t,geo(c));ctx.restore();}
+
+/* ============================ 魚の描画 ============================ */
+function fishBody(h,nose=16){ctx.beginPath();ctx.moveTo(nose,0);ctx.bezierCurveTo(nose,-h,2,-h*1.12,-12,-h*0.38);ctx.quadraticCurveTo(-14.5,0,-12,h*0.38);ctx.bezierCurveTo(2,h*1.12,nose,h,nose,0);ctx.closePath();}
+function tailPath(h,wag){ctx.beginPath();ctx.moveTo(-11,0);ctx.quadraticCurveTo(-17,-h*0.25+wag*0.5,-24,-h*0.85+wag);ctx.quadraticCurveTo(-20,wag,-24,h*0.85+wag);ctx.quadraticCurveTo(-17,h*0.25+wag*0.5,-11,0);ctx.closePath();}
+const lc=h=>rgba(lit(hx(h)));
+function eye(x,y,r,blink,happy){const k=lc('#141428');if(blink>0||happy>0.6){ctx.strokeStyle=k;ctx.lineWidth=1.5;ctx.lineCap='round';ctx.beginPath();ctx.arc(x,y+r*0.35,r*0.75,Math.PI*1.15,Math.PI*1.85);ctx.stroke();return;}
+ ctx.fillStyle=lc('#ffffff');ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.fillStyle=k;ctx.beginPath();ctx.arc(x+r*0.22,y+r*0.08,r*0.68,0,TAU);ctx.fill();
+ ctx.fillStyle=`rgba(255,255,255,${0.55+0.45*L.b})`;ctx.beginPath();ctx.arc(x+r*0.45,y-r*0.3,r*0.3,0,TAU);ctx.fill();}
+function shade(h,nose){ctx.save();fishBody(h,nose);ctx.clip();const g=ctx.createLinearGradient(0,-h,0,h);g.addColorStop(0,`rgba(255,255,255,${0.3*(1-L.m)*L.b})`);g.addColorStop(0.5,'rgba(255,255,255,0)');g.addColorStop(1,`rgba(0,0,30,${0.18*L.b})`);ctx.fillStyle=g;ctx.fillRect(-20,-h*1.3,40,h*2.6);ctx.restore();}
+const FDRAW={
+ clown(f,t,wag){const h=10,O=lc('#ff7a1a'),K=lc('#1d1d1d'),Wt=lc('#ffffff');ctx.lineJoin='round';
+  ctx.fillStyle=O;ctx.strokeStyle=K;ctx.lineWidth=1.2;tailPath(h,wag);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(7,-h*0.9);ctx.quadraticCurveTo(0,-h*1.75,-9,-h*0.5);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(3,h*0.9);ctx.quadraticCurveTo(-3,h*1.5,-8,h*0.5);ctx.closePath();ctx.fill();ctx.stroke();
+  fishBody(h);ctx.fill();ctx.save();ctx.clip();for(const[bx,bw]of[[8,4.4],[-2,5.4],[-11.5,3.2]]){ctx.fillStyle=K;ctx.beginPath();ctx.ellipse(bx,0,bw/2+1.1,h*1.3,0,0,TAU);ctx.fill();ctx.fillStyle=Wt;ctx.beginPath();ctx.ellipse(bx,0,bw/2,h*1.3,0,0,TAU);ctx.fill();}ctx.restore();
+  shade(h);ctx.strokeStyle=K;ctx.lineWidth=1;fishBody(h);ctx.stroke();return[10,-2.5,3.8,h];},
+ firefish(f,t,wag){const h=6.5;const sp=Math.sin(t*6+f.ph)*2;
+  ctx.fillStyle=lc('#7b34c8');tailPath(h,wag);ctx.fill();
+  ctx.fillStyle=lc('#ff4a3a');ctx.beginPath();ctx.moveTo(7,-h*0.8);ctx.quadraticCurveTo(2,-22+sp,-1,-h*0.8);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(-1,-h*0.7);ctx.quadraticCurveTo(-7,-h*1.6,-12,-h*0.4);ctx.lineTo(-1,-h*0.4);ctx.fill();
+  fishBody(h,18);const g=ctx.createLinearGradient(18,0,-13,0);g.addColorStop(0,lc('#fff3dc'));g.addColorStop(0.45,lc('#ffe4c8'));g.addColorStop(0.78,lc('#ff6a4a'));g.addColorStop(1,lc('#ff3a4a'));ctx.fillStyle=g;ctx.fill();
+  shade(h,18);return[11,-1.4,3.1,h];},
+ yellowtang(f,t,wag){const h=15,Y=lc('#ffd92e'),Y2=lc('#ffc21a');
+  ctx.fillStyle=Y2;tailPath(h*0.7,wag);ctx.fill();
+  ctx.beginPath();ctx.moveTo(12,-h*0.8);ctx.quadraticCurveTo(-2,-h*1.55,-12,-h*0.4);ctx.lineTo(-4,-h*0.7);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(8,h*0.85);ctx.quadraticCurveTo(-4,h*1.5,-12,h*0.4);ctx.lineTo(-4,h*0.7);ctx.closePath();ctx.fill();
+  ctx.fillStyle=Y;fishBody(h,17);ctx.fill();ctx.beginPath();ctx.moveTo(14,-5);ctx.quadraticCurveTo(20,-3,21,-1.2);ctx.quadraticCurveTo(18,1,14,2);ctx.fill();
+  ctx.fillStyle=lc('#ffffff');ctx.beginPath();ctx.ellipse(-9.5,0.5,1.8,1.1,0,0,TAU);ctx.fill();shade(h,17);return[9,-5,4.1,h];},
+ bluetang(f,t,wag){const h=12,B=lc('#2a5fe0'),K=lc('#0d1440'),Yl=lc('#ffd21f');
+  ctx.fillStyle=Yl;tailPath(h*0.8,wag);ctx.fill();ctx.strokeStyle=K;ctx.lineWidth=1.3;ctx.stroke();
+  ctx.fillStyle=B;ctx.beginPath();ctx.moveTo(11,-h*0.85);ctx.quadraticCurveTo(-2,-h*1.4,-12,-h*0.4);ctx.lineTo(-2,-h*0.6);ctx.closePath();ctx.fill();ctx.strokeStyle=K;ctx.stroke();
+  fishBody(h);ctx.fill();ctx.save();ctx.clip();ctx.strokeStyle=K;ctx.lineWidth=4.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(11,-6);ctx.quadraticCurveTo(0,-10,-12,-4);ctx.stroke();ctx.lineWidth=2.6;ctx.beginPath();ctx.ellipse(-2,-2,7,3.2,-0.1,0,TAU);ctx.stroke();ctx.restore();
+  ctx.fillStyle=Yl;ctx.beginPath();ctx.ellipse(3,4,4,1.8,0.5,0,TAU);ctx.fill();shade(h);return[10,-3,3.8,h];},
+};
+function drawFish(f,t){const sp=FISH[f.sp];const s=FSZ*sp.size*(1+f.happy*0.12);ctx.save();ctx.translate(f.x,f.y+Math.sin(t*2+f.ph)*1.5);ctx.rotate(clamp(f.vy/160,-0.35,0.35));ctx.scale((Math.abs(f.face)<0.12?0.12*Math.sign(f.face||1):f.face)*s,s);
+ const spd=Math.hypot(f.vx,f.vy);const wag=Math.sin(t*(7+spd*0.12)+f.ph)*(1.2+spd*0.03);
+ const[ex,ey,er,h]=FDRAW[f.sp](f,t,wag);
+ ctx.fillStyle=lc('#ffffff');ctx.globalAlpha=0.35;ctx.beginPath();ctx.ellipse(2,h*0.35,4,2,0.4+Math.sin(t*9+f.ph)*0.3,0,TAU);ctx.fill();ctx.globalAlpha=1;
+ eye(ex,ey,er,f.blink,f.happy);
+ ctx.fillStyle=rgba(lit(hx('#ff8fab')),0.55);ctx.beginPath();ctx.ellipse(ex-2,ey+er+2,2.6,1.4,0,0,TAU);ctx.fill();
+ ctx.restore();}
+
+/* ============================ 背景・水・光 ============================ */
+const BG_D=['#b6f1ff','#59c7ee','#1a82c0'],BG_N=['#2c38c4','#141b84','#03051f'];
+function drawBg(){const g=ctx.createLinearGradient(0,0,0,H);const bb=0.22+0.78*L.b;[0,0.38,1].forEach((s,i)=>g.addColorStop(s,rgba(mixc(hx(BG_D[i]),hx(BG_N[i]),L.m).map(v=>v*bb))));ctx.fillStyle=g;ctx.fillRect(-2000,-200,W+4000,H+800);}
+function drawRays(t){const a=((1-L.m)*0.17+L.m*0.08)*L.b;if(a<0.01)return;const col=mixc([255,253,235],[110,120,255],L.m);ctx.save();ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<8;i++){const x=40+i*160+Math.sin(t*0.12+i*1.7)*60;const w=50+30*Math.sin(i*2.3+t*0.2);const al=a*(0.6+0.4*Math.sin(t*0.5+i*1.3));
+  const g=ctx.createLinearGradient(0,0,0,H*0.92);g.addColorStop(0,rgba(col,al));g.addColorStop(1,rgba(col,0));ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x-w*0.5,0);ctx.lineTo(x+w*0.5,0);ctx.lineTo(x+w*1.5+110,H*0.92);ctx.lineTo(x-w*0.3+110,H*0.92);ctx.closePath();ctx.fill();}ctx.restore();}
+function drawEnv(){ctx.drawImage(ENV.day,ENV.x0,ENV.y0,ENV.w,ENV.h);if(L.m>0.003){ctx.globalAlpha=L.m;ctx.drawImage(ENV.night,ENV.x0,ENV.y0,ENV.w,ENV.h);ctx.globalAlpha=1;}
+ if(L.b<0.999){ctx.fillStyle=`rgba(0,2,12,${(1-L.b)*0.8})`;ctx.fillRect(-2000,-200,W+4000,H+800);}}
+function drawCaustics(t,surface){const aD=(1-L.m)*L.b*(surface?0.3:0.035),aN=L.m*L.b*(surface?0.16:0.03);ctx.save();if(surface)ctx.clip(SURF);ctx.globalCompositeOperation='lighter';
+ const lay=(pat,a,ox,oy,sc)=>{if(a<0.01)return;pat.setTransform(new DOMMatrix([sc,0,0,sc*0.62,ox,oy]));ctx.globalAlpha=a;ctx.fillStyle=pat;ctx.fillRect(-500,surface?150:60,W+1000,H);};
+ lay(PAT_D,aD,t*14,t*5,1.9);lay(PAT_D,aD*0.7,-t*10,t*8+90,1.4);lay(PAT_N,aN,t*14,t*5,1.9);lay(PAT_N,aN*0.7,-t*10,t*8+90,1.4);ctx.restore();}
+function drawEquip(t){if(S.eq.pump>=1)pumpAt(58,170,t);if(S.eq.pump>=2)pumpAt(1142,150,t);}
+function pumpAt(x,y,t){ctx.save();ctx.translate(x,y);ctx.scale(0.75,0.75);ctx.globalAlpha=0.8;ctx.fillStyle=lc('#2a3038');ctx.beginPath();ctx.roundRect(-16,-16,32,32,9);ctx.fill();ctx.strokeStyle=lc('#566070');ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,10,0,TAU);ctx.stroke();ctx.rotate(t*6);ctx.strokeStyle=lc('#8c96a4');ctx.lineWidth=2;ctx.beginPath();for(let k=0;k<3;k++){const a=k/3*TAU;ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*8,Math.sin(a)*8);}ctx.stroke();ctx.restore();}
+function drawTop(t){ctx.strokeStyle=`rgba(255,255,255,${(0.35-L.m*0.15)*L.b})`;ctx.lineWidth=2;ctx.beginPath();for(let x=-400;x<=W+400;x+=16){const y=24+Math.sin(x*0.03+t*1.5)*2+Math.sin(x*0.013-t)*1.5;x===-400?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
+ const g0=ctx.createLinearGradient(0,0,0,26);g0.addColorStop(0,`rgba(255,255,255,${0.18*L.b})`);g0.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=g0;ctx.fillRect(-2000,0,W+4000,26);
+ ctx.fillStyle='#141a24';ctx.fillRect(-2000,-200,W+4000,210);
+ const em=mixc([255,250,236],[80,100,255],L.m);const n=[10,14,18][S.eq.led];
+ const g=ctx.createLinearGradient(0,10,0,90);g.addColorStop(0,rgba(em,0.3*L.b));g.addColorStop(1,rgba(em,0));ctx.fillStyle=g;ctx.fillRect(-2000,10,W+4000,80);
+ for(let i=0;i<n;i++){const x=W*(i+0.5)/n;ctx.fillStyle=rgba(mixc([50,52,60],em,0.25+0.75*L.b));ctx.beginPath();ctx.roundRect(x-12,3,24,6,3);ctx.fill();}}
+function drawVignette(){const g=ctx.createRadialGradient(W/2,H*0.45,H*0.35,W/2,H*0.5,W*0.72);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,8,30,${0.28+0.22*L.m})`);ctx.fillStyle=g;ctx.fillRect(-2000,-200,W+4000,H+800);}
+
+/* ============================ パーティクル ============================ */
+const PARTS=[],FOOD=[],SNOW=[];
+for(let i=0;i<70;i++)SNOW.push({x:Math.random()*W,y:Math.random()*H,r:0.6+Math.random()*1.4,v:3+Math.random()*6,ph:Math.random()*TAU});
+function addPart(p){PARTS.push(p);if(PARTS.length>400)PARTS.shift();}
+function heartPath(x,y,s){ctx.moveTo(x,y+s*0.3);ctx.bezierCurveTo(x,y,x-s*0.5,y-s*0.3,x-s*0.5,y+s*0.05);ctx.bezierCurveTo(x-s*0.5,y+s*0.4,x,y+s*0.6,x,y+s*0.9);ctx.bezierCurveTo(x,y+s*0.6,x+s*0.5,y+s*0.4,x+s*0.5,y+s*0.05);ctx.bezierCurveTo(x+s*0.5,y-s*0.3,x,y,x,y+s*0.3);}
+function star(x,y,s){ctx.moveTo(x,y-s);ctx.quadraticCurveTo(x,y,x+s,y);ctx.quadraticCurveTo(x,y,x,y+s);ctx.quadraticCurveTo(x,y,x-s,y);ctx.quadraticCurveTo(x,y,x,y-s);}
+function sparkle(x,y,n=8,col=[255,240,160]){for(let i=0;i<n;i++){const a=Math.random()*TAU,v=20+Math.random()*50;addPart({type:'spark',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-20,life:0.8,max:0.8,s:3+Math.random()*4,col});}}
+function bubbles(x,y,n){for(let i=0;i<n;i++)addPart({type:'bubble',x:x+(Math.random()-0.5)*60,y:y+Math.random()*30,vx:0,vy:-(40+Math.random()*60),life:3,max:3,s:2+Math.random()*4,ph:Math.random()*TAU});}
+function updParts(dt,t){for(const p of PARTS){p.life-=dt;p.x+=(p.vx||0)*dt;p.y+=(p.vy||0)*dt;if(p.type==='bubble'){p.x+=Math.sin(t*4+p.ph)*0.4;if(p.y<30)p.life=0;}if(p.type==='spark'){p.vx*=0.95;p.vy*=0.95;}}
+ for(let i=PARTS.length-1;i>=0;i--)if(PARTS[i].life<=0)PARTS.splice(i,1);
+ for(const s of SNOW){s.y+=s.v*dt*0.4;s.x+=Math.sin(t*0.4+s.ph)*0.15;if(s.y>H){s.y=30;s.x=Math.random()*W;}}}
+function drawParts(t){ctx.fillStyle=L.m>0.5?`rgba(170,190,255,${0.35*L.b})`:`rgba(255,255,255,${0.35*L.b})`;ctx.beginPath();for(const s of SNOW)ep(s.x,s.y,s.r,s.r);ctx.fill();
+ for(const f of FOOD){ctx.fillStyle=lc('#b5773e');ctx.beginPath();ep(f.x,f.y,2.3,2);ctx.fill();}
+ for(const p of PARTS){const a=clamp(p.life/p.max,0,1);
+  if(p.type==='heart'){ctx.fillStyle=`rgba(255,110,150,${a})`;ctx.beginPath();heartPath(p.x,p.y,p.s*(1.3-a*0.3));ctx.fill();}
+  else if(p.type==='bubble'){ctx.strokeStyle=`rgba(255,255,255,${0.6*a})`;ctx.lineWidth=1;ctx.beginPath();ep(p.x,p.y,p.s,p.s);ctx.stroke();ctx.fillStyle=`rgba(255,255,255,${0.5*a})`;ctx.beginPath();ep(p.x-p.s*0.35,p.y-p.s*0.35,p.s*0.25,p.s*0.25);ctx.fill();}
+  else if(p.type==='spark'||p.type==='glint'){ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=rgba(p.col,a);ctx.beginPath();star(p.x,p.y,p.s*(p.type==='glint'?Math.sin(a*Math.PI):1));ctx.fill();ctx.restore();}
+  else if(p.type==='ripple'){ctx.strokeStyle=`rgba(255,255,255,${0.6*a})`;ctx.lineWidth=2;ctx.beginPath();ep(p.x,p.y,(1-a)*40+4,((1-a)*40+4)*0.4);ctx.stroke();}}}
+
+/* ============================ 魚の動き ============================ */
+let FISHES=[];const FSZ=1.45;
+function spawnFish(sp,top){return{sp,x:150+Math.random()*900,y:top?40:120+Math.random()*320,vx:0,vy:top?40:0,tx:600,ty:300,face:1,ph:Math.random()*TAU,blink:0,happy:0,next:0};}
+function updFish(dt,t,corals){const hosts=corals.filter(c=>!c.dead&&(c.sp==='torch'||c.sp==='toadstool'));
+ for(const f of FISHES){const sp=FISH[f.sp];let speed=sp.speed;let tgt=null;
+  if(FOOD.length){let best=1e9;for(const p of FOOD){if(p.dead||p.y>sandTop(p.x)-4)continue;const d=(p.x-f.x)**2+(p.y-f.y)**2;if(d<best){best=d;tgt=p;}}}
+  if(tgt){f.tx=tgt.x;f.ty=tgt.y;speed*=1.7;if(Math.hypot(tgt.x-f.x,tgt.y-f.y)<13){tgt.dead=true;f.happy=1;addPart({type:'heart',x:f.x,y:f.y-16,vx:0,vy:-20,life:1.2,max:1.2,s:10});}}
+  else if(t>f.next){f.next=t+2.5+Math.random()*4;
+   if(f.sp==='clown'&&hosts.length&&Math.random()<0.5){const h=hosts[(Math.random()*hosts.length)|0];f.tx=h.x+(Math.random()-0.5)*50;f.ty=h.y-CORALS[h.sp].hy*coralScale(h)-12-Math.random()*20;}
+   else if(f.sp==='firefish'){f.tx=100+Math.random()*1000;f.ty=320+Math.random()*220;}
+   else{f.tx=60+Math.random()*1080;f.ty=80+Math.random()*420;}}
+  const dx=f.tx-f.x,dy=f.ty-f.y,d=Math.hypot(dx,dy)||1;const k=Math.min(1,d/40);const a=Math.min(1,dt*2.2);
+  f.vx+=(dx/d*speed*k-f.vx)*a;f.vy+=(dy/d*speed*k*0.7-f.vy)*a;f.x+=f.vx*dt;f.y+=f.vy*dt;f.x=clamp(f.x,20,W-20);f.y=clamp(f.y,60,sandTop(f.x)-32);
+  if(Math.abs(f.vx)>4){f.face+=(Math.sign(f.vx)-f.face)*Math.min(1,dt*5);}
+  f.happy=Math.max(0,f.happy-dt*0.7);if(f.blink>0)f.blink-=dt;else if(Math.random()<dt*0.3)f.blink=0.14;}}
+
+/* ============================ サンゴの健康（学びの中心） ============================ */
+const eqv=(k)=>EQ[k][S.eq[k]];
+const lightAt=y=>clamp(1.05-(y-120)/560*0.72,0.28,1.05)*eqv('led').power;
+const yForLight=v=>120+(1.05-v/eqv('led').power)/0.72*560;
+const fitR=(v,[a,b],lo,hi)=>v<a?clamp(1-(a-v)/lo,0,1):v>b?clamp(1-(v-b)/hi,0,1):1;
+function evalCoral(c,x=c.x,y=c.y,sand=c.sand){const sp=CORALS[c.sp];const lv=lightAt(y),fv=eqv('pump').flow;const f={};
+ f.light=fitR(lv,sp.light,0.22,0.3);f.flow=fitR(fv,sp.flow,0.25,0.35);
+ const qmin=25+sp.diff*10;f.water=S.q>=qmin?1:clamp(1-(qmin-S.q)/25,0,1);
+ const tol=0.0045-sp.diff*0.0005,dev=Math.abs(S.sal-1.024);f.salt=dev<=tol?1:clamp(1-(dev-tol)/0.003,0,1);
+ f.temp=clamp(1-Math.max(0,S.temp-26.8)/(3.4-sp.diff*0.35),0,1);
+ f.place=sp.sand&&!sand?0.75:1;f.neighbor=1;let stung=false,near=false;
+ for(const o of S.corals){if(o===c||o.dead)continue;const d=Math.hypot(o.x-x,o.y-y);if(d<80){if(o.sp==='torch'){f.neighbor=Math.min(f.neighbor,0.7);stung=true;}if(sp.aggressive)near=true;}}
+ let tg=1;for(const k in f)tg*=f[k];return{f,lv,fv,qmin,tg:Math.max(0.03,tg),stung,near};}
+function condList(c,ev){const sp=CORALS[c.sp];const o=[];const mk=v=>v>=0.999?'o':v>0.5?'t':'x';
+ const lt=ev.lv<sp.light[0]?'光が足りないみたい。もっと上に置くか、照明を強くしよう。':ev.lv>sp.light[1]?'光が強すぎるみたい。もう少し下へ移動してあげよう。':'光の強さはちょうどいい！';
+ o.push(['☀️ 光',mk(ev.f.light),lt]);
+ o.push(['🌊 水流',mk(ev.f.flow),ev.fv<sp.flow[0]?'水流が弱い。ウェーブポンプを入れよう。':ev.fv>sp.flow[1]?'水流が強すぎてポリプが開きにくい。':'水流はちょうどいい！']);
+ o.push(['💧 水のきれいさ',mk(ev.f.water),S.q<ev.qmin?'水が汚れてきた。水換えをしよう。':'きれいな水で快適。']);
+ o.push(['🧂 塩分',mk(ev.f.salt),S.sal>1.0245?'塩分が濃くなってきた。足し水（真水）をしよう。':'塩分はちょうどいい。']);
+ o.push(['🌡 水温',mk(ev.f.temp),S.temp>26.8?'水温が高い！ クーラーがあると安心。':'水温は快適。']);
+ if(sp.sand)o.push(['🏖 置き場所',mk(ev.f.place),c.sand?'砂の上でごきげん。':'この子は砂の上が好き。砂地へ移動しよう。']);
+ if(ev.stung)o.push(['⚡ となり',mk(ev.f.neighbor),'トーチコーラルの触手が届いている！ 少し離してあげよう。']);
+ if(ev.near)o.push(['⚡ となり','t','近くのサンゴを触手で刺してしまうかも。間をあけよう。']);
+ return o;}
+const mood=h=>h>0.8?'😊 ごきげん':h>0.55?'🙂 まあまあ':h>0.3?'😟 元気がない…':'😢 白化しかけている！';
+
+/* ============================ シミュレーション ============================ */
+const HPS=24/180; // 現実の3分＝ゲームの1日
+let warnT=0,glintT=0,dangerT=0;
+function simulate(dt,t){if(!S.started)return;const dh=dt*HPS;
+ S.time+=dh;if(S.time>=24){S.time-=24;S.day++;newDay();}
+ S.q=clamp(S.q-dh/24*(8*(S.eq.skimmer?0.55:1)+S.corals.length*0.35+S.fish.length*1.1),0,100);
+ if(!S.eq.ato)S.sal=Math.min(1.034,S.sal+dh/24*0.0014);else S.sal+=(1.024-S.sal)*Math.min(1,dh*0.5);
+ if(S.heat>0)S.heat-=dh/24;const tt=25.5+(S.heat>0?(S.eq.cooler?0.4:3.6):0);S.temp+=(tt-S.temp)*(1-Math.exp(-dh/5));
+ if(S.fedT>0)S.fedT-=dh;
+ for(const c of S.corals.slice()){const sp=CORALS[c.sp];
+  if(c.dead){if(isSoft(c)){c.melt=Math.min(1,(c.melt||0)+dt/5);if(Math.random()<dt*8)addPart({type:'bubble',x:c.x+(Math.random()-0.5)*30,y:c.y-10,vx:0,vy:-25,life:1.5,max:1.5,s:1.5+Math.random()*2,ph:Math.random()*TAU});if(c.melt>=1){S.corals=S.corals.filter(o=>o!==c);if(selId===c.id)closeCard();}}else S.q=Math.max(0,S.q-dh/24*2);continue;}
+  const ev=evalCoral(c);c._ev=ev;
+  c.h+=(ev.tg-c.h)*(1-Math.exp(-dt/22));
+  if(c.h<0.15){c.crit=(c.crit||0)+dt;if(c.crit>DEATH_T){kill(c,ev);continue;}if(!c.warned&&c.crit>DEATH_T*0.25&&t>dangerT){c.warned=true;dangerT=t+25;say(`⚠ ${sp.name}が危ない！ このままだと死んでしまうよ。原因は「${causeOf(c,ev)}」みたい。急いで手当てしてあげて！`);warnT=t+30;}}
+  else{c.crit=Math.max(0,(c.crit||0)-dt*0.5);if(c.h>0.35)c.warned=false;}
+  const boost=sp.feed&&S.fedT>0?1.6:1;c.g=Math.min(1.25,c.g+sp.grow*0.006*dt*Math.max(0,(c.h-0.45)/0.55)*boost);
+  S.cp+=dt*sp.value*c.h*c.h*(0.4+0.6*Math.min(1,c.g));}
+ const m=MISSIONS[S.mi];if(m&&m.done(S)){S.cp+=m.reward;toast(`🎯 ミッション達成！ 💎+${m.reward}`);sparkle(W/2,120,16);say(m.after);S.mi++;const n=MISSIONS[S.mi];if(n)say(`つぎのミッション：「${n.title}」\n${n.desc}`);else say('全ミッション達成！ きみはもう立派なアクアリストだよ。これからは自由に、理想の海をつくってね。');updMission();}
+ if(t>warnT){let w=null;if(S.q<45)w='水が汚れてきたよ！ 🔄水換えをしよう。';else if(S.sal>1.0265&&!S.eq.ato)w='塩分がかなり濃くなってる！ 💧足し水（真水）をしよう。';else if(S.temp>27.5)w='水温が上がってる…！ サンゴは暑さが苦手。クーラーがあると安心だよ。';else{const b=S.corals.find(c=>!c.dead&&c.h<0.4&&c.h>=0.15);if(b)w=`${CORALS[b.sp].name}が元気ないみたい…。タップして原因を見てみよう。`;}
+  if(w){say(w);warnT=t+40;}}}
+const DEATH_T=90; // 瀕死（健康15%未満）がこの秒数続くと死ぬ（ゲーム内で約半日）
+function causeOf(c,ev){const sp=CORALS[c.sp];let k='water',v=2;for(const key in ev.f){if(ev.f[key]<v){v=ev.f[key];k=key;}}
+ return{light:ev.lv<sp.light[0]?'光が足りない':'光が強すぎる',flow:ev.fv<sp.flow[0]?'水流が弱すぎる':'水流が強すぎる',water:'水が汚れている（水換え不足）',salt:'塩分が濃すぎる（足し水不足）',temp:'水温が高すぎる',place:'置き場所が合っていない',neighbor:'トーチコーラルに刺されている'}[k];}
+function kill(c,ev){const sp=CORALS[c.sp];const cause=causeOf(c,ev);c.dead=true;c.h=0;c.deadDay=S.day;c.cause=cause;c.ret=1;c.melt=0;S.lost.push({sp:c.sp,morph:c.morph,day:S.day,cause});
+ toast(`🥀 ${sp.name}が死んでしまった…`);
+ if(bq.length<2)say(isSoft(c)?`${sp.name}が死んでしまった…。原因は「${cause}」だったみたい。ソフトコーラルは骨格がないから、溶けるように消えてしまうんだ。次は同じことが起きないようにしてあげよう。`:`${sp.name}が死んでしまった…。原因は「${cause}」だったみたい。白い骨格だけが残ってる。死んだサンゴは水を汚すから、タップして「取り除く」をしよう。`);save();}
+function newDay(){if(S.day>=4&&S.heat<=0&&Math.random()<0.25){S.heat=1.6;say('今日は暑い日！ 水温が上がりやすいよ。本物の水槽でも夏はクーラーが大活躍するんだ。');}save();}
+
+/* ============================ 描画ループ ============================ */
+let PLACE=null,ghost=null,selId=null,titleCorals=[],lastT=performance.now(),T0=performance.now();
+function visibleCorals(){return S.started||S.corals.length?S.corals:titleCorals;}
+function frame(now){const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=(now-T0)/1000;
+ if(L.cycle&&S.started){const s=schedule(S.time);L.tm=s.m;L.tb=s.b;}
+ if(!S.started&&!S.corals.length){const ph=Math.floor(t/7)%2;L.tm=ph;}
+ L.m=damp(L.m,L.tm,'vm',1.5,dt);L.b=damp(L.b,L.tb,'vb',1.5,dt);
+ SW=0.5+eqv('pump').flow*1.2;
+ const corals=visibleCorals();
+ simulate(dt,t);updFish(dt,t,corals);
+ for(const c of corals)if(!c.dead)c.ret=Math.max(0,(c.ret||0)-dt*0.25);
+ for(const f of FOOD){if(f.y<sandTop(f.x)-3){f.y+=f.vy*dt;f.x+=Math.sin(t*2+f.ph)*8*dt;}else{f.life-=dt;if(f.life<0&&!f.dead){f.dead=true;S.q=Math.max(0,S.q-0.6);}}}
+ for(let i=FOOD.length-1;i>=0;i--)if(FOOD[i].dead)FOOD.splice(i,1);
+ if((1-L.m)*L.b>0.35&&corals.length&&t>glintT){glintT=t+0.12+Math.random()*0.25;const c=corals[(Math.random()*corals.length)|0];if(c.dead){}else{const s=coralScale(c);addPart({type:'glint',x:c.x+(Math.random()-0.5)*50*s,y:c.y-Math.random()*CORALS[c.sp].hy*1.6*s-4,vx:0,vy:0,life:0.7,max:0.7,s:3+Math.random()*3,col:[255,255,240]});}}
+ updParts(dt,t);
+ ctx=MC;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.setTransform(DPR*SC,0,0,DPR*SC,DPR*OX,DPR*OY);
+ drawBg();drawRays(t);drawEnv();drawCaustics(t,true);drawEquip(t);
+ if(PLACE)drawZone();
+ const sorted=corals.slice().sort((a,b)=>a.y-b.y);for(const c of sorted)drawCoral(c,t);
+ if(selId){const c=S.corals.find(c=>c.id===selId);if(c){const s=coralScale(c);ctx.strokeStyle=`rgba(255,255,255,${0.5+0.3*Math.sin(t*4)})`;ctx.setLineDash([6,6]);ctx.lineWidth=2;ctx.beginPath();ep(c.x,c.y+2,CORALS[c.sp].hr*s,12*s);ctx.stroke();ctx.setLineDash([]);}}
+ if(PLACE&&ghost)drawGhost(t);
+ for(const f of FISHES)drawFish(f,t);
+ drawParts(t);drawCaustics(t,false);drawTop(t);drawVignette();
+ hudTick(t);requestAnimationFrame(frame);}
+
+/* ============================ 置き場所の案内 ============================ */
+function placeInfo(p){const sp=CORALS[PLACE.sp];const rock=onRock(p.x,p.y)&&p.y<sandTop(p.x)+4;const sand=!rock&&p.y>=sandTop(p.x)-6&&p.y<=680;
+ const ok=(rock||sand)&&p.y>=110;const far=S.corals.every(o=>o.id===PLACE.moveId||Math.hypot(o.x-p.x,o.y-p.y)>50);
+ const fake={sp:PLACE.sp,id:PLACE.moveId};const ev=evalCoral(fake,p.x,p.y,sand);return{rock,sand,ok:ok&&far,far,ev,lv:lightAt(p.y)};}
+function drawZone(){const sp=CORALS[PLACE.sp];const y1=clamp(yForLight(sp.light[1]),30,H),y2=clamp(yForLight(sp.light[0]),30,H);if(y2-y1<2)return;
+ ctx.fillStyle='rgba(120,255,170,0.10)';ctx.fillRect(-2000,y1,W+4000,y2-y1);ctx.strokeStyle='rgba(150,255,190,0.6)';ctx.setLineDash([10,8]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-2000,y1);ctx.lineTo(W+2000,y1);ctx.moveTo(-2000,y2);ctx.lineTo(W+2000,y2);ctx.stroke();ctx.setLineDash([]);
+ ctx.save();ctx.fillStyle='rgba(255,255,255,0.98)';ctx.shadowColor='rgba(0,40,30,0.8)';ctx.shadowBlur=6;ctx.font='bold 16px sans-serif';ctx.fillText('▼ おすすめゾーン（この子にちょうどいい光）',16,Math.max(y1+22,120));ctx.restore();}
+function drawGhost(t){const info=placeInfo(ghost);const fake={sp:PLACE.sp,morph:PLACE.morph,g:0.6,h:1,ret:0,seed:PLACE.seed,x:ghost.x,y:ghost.y,_geo:PLACE._geo};PLACE._geo=geo(fake);
+ const col=!info.ok?'rgba(255,90,110,0.9)':info.ev.tg>0.9?'rgba(110,255,160,0.95)':'rgba(255,200,80,0.95)';
+ ctx.strokeStyle=col;ctx.lineWidth=3;ctx.beginPath();ep(ghost.x,ghost.y+2,36+Math.sin(t*5)*3,12);ctx.stroke();
+ ctx.globalAlpha=0.85;drawCoral(fake,t);ctx.globalAlpha=1;}
+
+/* ============================ 操作 ============================ */
+function hitCoral(p){const list=S.corals.slice().sort((a,b)=>b.y-a.y);for(const c of list){const s=coralScale(c),sp=CORALS[c.sp];const cy=c.y-sp.hy*s*0.8;if(((p.x-c.x)/(sp.hr*s))**2+((p.y-cy)/(Math.max(sp.hy,24)*s))**2<1)return c;}return null;}
+function hitFish(p){for(const f of FISHES)if(Math.hypot(p.x-f.x,p.y-f.y)<24*FSZ*FISH[f.sp].size)return f;return null;}
+cv.addEventListener('pointerdown',e=>{if(PLACE){ghost=toL(e);updPlaceBanner();}});
+cv.addEventListener('pointermove',e=>{if(PLACE){ghost=toL(e);updPlaceBanner();}});
+cv.addEventListener('pointerup',e=>{const p=toL(e);if(PLACE){tryPlace(p);return;}if(!S.started)return;
+ const f=hitFish(p);if(f){f.happy=1;f.vy-=70;addPart({type:'heart',x:f.x,y:f.y-18,vx:0,vy:-22,life:1.2,max:1.2,s:11});const sp=FISH[f.sp];say(`${sp.name}：${sp.desc}\n💡${sp.fact}`);return;}
+ const c=hitCoral(p);if(c){c.ret=1;S.flags.tapped=true;sparkle(c.x,c.y-30*coralScale(c),6,[255,255,255]);openCard(c.id);return;}
+ addPart({type:'ripple',x:p.x,y:p.y,life:0.8,max:0.8});sparkle(p.x,p.y,4,[200,240,255]);closeCard();});
+function tryPlace(p){const info=placeInfo(p);ghost=p;
+ if(!info.ok){toast(!info.far?'となりのサンゴと近すぎるよ':'岩の上か、砂の上に置いてね');return;}
+ if(PLACE.moveId){const c=S.corals.find(c=>c.id===PLACE.moveId);c.x=p.x;c.y=p.y;c.sand=info.sand;toast('移動したよ');selId=c.id;endPlace();openCard(c.id);save();return;}
+ const c={id:S.nextId++,sp:PLACE.sp,morph:PLACE.morph,x:p.x,y:p.y,sand:info.sand,g:0.55,h:0.85,seed:PLACE.seed,ret:1};
+ S.corals.push(c);const z=S.zukan[c.sp]||(S.zukan[c.sp]=[]);const isNewMorph=!z.includes(c.morph);if(isNewMorph)z.push(c.morph);
+ sparkle(p.x,p.y-20,14);bubbles(p.x,p.y,6);const sp=CORALS[c.sp];
+ toast(`${sp.name}（${sp.morphs[c.morph].name}）を迎えたよ！`);
+ const ev=evalCoral(c);if(ev.f.light<1)say(ev.lv<sp.light[0]?`${sp.name}には少し暗いかも。タップして「移動」で上の方へ動かせるよ。`:`${sp.name}には光が強すぎるかも。タップして「移動」で下の方へ動かせるよ。`);
+ endPlace();save();}
+function startPlace(o){PLACE=o;ghost=null;closeModal();closeCard();document.getElementById('place').classList.remove('hidden');updPlaceBanner();}
+function endPlace(){PLACE=null;ghost=null;document.getElementById('place').classList.add('hidden');}
+function updPlaceBanner(){const sp=CORALS[PLACE.sp];const el=document.getElementById('placeMsg'),st=document.getElementById('placeSt');
+ el.innerHTML=`<b>${sp.name}</b>を置く場所をタップ（上ほど光が強い）`;
+ if(!ghost){st.textContent='';return;}const i=placeInfo(ghost);
+ st.textContent=!i.ok?(i.far?'✖ ここには置けない':'✖ となりと近すぎ'):i.lv<sp.light[0]?'△ 光が足りない':i.lv>sp.light[1]?'△ 光が強すぎ':sp.sand&&!i.sand?'△ 砂の上が好き':i.ev.near||i.ev.stung?'△ となりと近い':'◎ ばっちり！';
+ st.style.color=!i.ok?'#e8506a':st.textContent[0]==='◎'?'#2fae6a':'#e0901a';}
+document.getElementById('placeCancel').onclick=()=>{const was=PLACE;endPlace();if(was&&!was.moveId){S.cp+=CORALS[was.sp].price;toast('購入をキャンセルしたよ（💎は返ってきた）');}};
+
+/* 行動 */
+const cool={feed:0,wc:0};
+document.getElementById('feedBtn').onclick=()=>{const t=performance.now()/1000;if(t<cool.feed){toast('さっきあげたばかり。あげすぎは水を汚すよ');return;}cool.feed=t+6;
+ for(let i=0;i<14;i++)FOOD.push({x:380+Math.random()*440,y:30+Math.random()*20,vy:16+Math.random()*10,ph:Math.random()*TAU,life:5});
+ S.q=Math.max(0,S.q-2.5);S.fedT=24;S.flags.fed=true;toast('🍤 エサをあげたよ');};
+document.getElementById('topoffBtn').onclick=()=>{if(S.sal>1.0245){S.sal=1.024;S.flags.topoff=true;bubbles(600,60,20);toast('💧 真水を足して、ちょうどいい塩分に戻したよ');}else toast('今は足さなくて大丈夫（比重1.024前後がめやす）');};
+document.getElementById('wcBtn').onclick=()=>{const t=performance.now()/1000;if(t<cool.wc){toast('水換え直後。少しずつ・定期的にが基本だよ');return;}cool.wc=t+12;
+ S.q=Math.min(100,S.q+30);S.sal+=(1.024-S.sal)*0.3;S.flags.wc=true;bubbles(300,560,18);bubbles(900,560,18);toast('🔄 水換え完了！ 水がきれいになったよ');};
+document.getElementById('photoBtn').onclick=()=>{const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;const g=c.getContext('2d');g.drawImage(cv,0,0);
+ g.font=`bold ${15*DPR}px sans-serif`;g.textAlign='right';g.fillStyle='rgba(255,255,255,.85)';g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=6*DPR;g.fillText(`はじめてのサンゴ水槽  Day ${S.day}`,c.width-18*DPR,(OY+H*SC)*DPR-110*DPR);
+ c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`my_reef_day${S.day}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);});
+ const fl=document.getElementById('flash');fl.style.transition='none';fl.style.opacity=0.8;requestAnimationFrame(()=>{fl.style.transition='opacity .6s';fl.style.opacity=0;});S.flags.photo=true;toast('📷 写真を保存したよ');};
+
+/* 照明UI */
+const slider=document.getElementById('lightSlider');
+document.querySelectorAll('.lb').forEach(b=>b.onclick=()=>{setLight(+b.dataset.light);if(+b.dataset.light===1&&!S.flags.blueTip){S.flags.blueTip=true;}});
+slider.oninput=()=>setLight(slider.value/100);
+document.getElementById('cycleBtn').onclick=()=>{L.cycle=!L.cycle;if(!L.cycle){L.tb=1;}else say('「1日の光」モード。朝は青からゆっくり白へ、夕方はまた青へ、夜は月明かりに。本物のサンゴ水槽も、こんなふうにタイマーで光を変えているんだ。');syncLightUI();};
+function syncLightUI(){document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',!L.cycle&&Math.abs(+b.dataset.light-L.tm)<0.01));document.getElementById('cycleBtn').classList.toggle('on',L.cycle);if(!L.cycle)slider.value=Math.round(L.tm*100);}
+
+/* ============================ HUD / 吹き出し / トースト ============================ */
+let hudNext=0;
+function hudTick(t){document.body.classList.toggle('night',L.m*L.b>0.5||L.b<0.5);
+ const lbl=L.m<0.15?'白色LED':L.m>0.85?'ブルーLED':'ミックス';document.getElementById('lightLbl').textContent=(L.cycle?'⏱ ':'')+lbl;if(L.cycle)slider.value=Math.round(L.m*100);
+ if(t<hudNext)return;hudNext=t+0.25;
+ document.getElementById('hDay').textContent=S.day;const hh=Math.floor(S.time),mm=Math.floor((S.time-hh)*60/10)*10;document.getElementById('hTime').textContent=`${hh}:${String(mm).padStart(2,'0')}`;
+ document.getElementById('hCp').textContent=Math.floor(S.cp);
+ const q=document.getElementById('gQ');q.style.width=S.q+'%';q.style.background=S.q>70?'var(--ok)':S.q>50?'var(--warn)':'var(--bad)';
+ const gs=document.getElementById('gS');gs.textContent=S.sal.toFixed(3);gs.style.color=S.sal>1.0265?'var(--bad)':S.sal>1.0245?'var(--warn)':'';
+ const gt=document.getElementById('gT');gt.textContent=S.temp.toFixed(1)+'℃';gt.style.color=S.temp>27.5?'var(--bad)':S.temp>26.8?'var(--warn)':'';
+ if(selId&&t>cardNext){cardNext=t+0.6;renderCard();}
+ if(t>saveNext){saveNext=t+5;save();}}
+let cardNext=0,saveNext=0;
+const bq=[];let bTyping=null,bHide=0;
+function say(txt){if(!txt)return;bq.push(txt);if(!bTyping&&document.getElementById('bubble').classList.contains('hidden'))nextBubble();}
+function nextBubble(){const el=document.getElementById('bubble'),tx=document.getElementById('bubbleText');clearTimeout(bHide);
+ if(!bq.length){el.classList.add('hidden');return;}const s=bq.shift();el.classList.remove('hidden');let i=0;clearInterval(bTyping);
+ bTyping=setInterval(()=>{i+=2;tx.innerHTML=esc(s.slice(0,i)).replace(/\n/g,'<br>');if(i>=s.length){clearInterval(bTyping);bTyping=null;bHide=setTimeout(nextBubble,Math.max(5000,s.length*90));}},24);
+ el.querySelector('.nx').style.display='';}
+document.getElementById('bubble').onclick=()=>{if(bTyping){clearInterval(bTyping);bTyping=null;}nextBubble();};
+document.getElementById('nemo').onclick=()=>{const tips=['サンゴは「動物」。体の中の褐虫藻（かっちゅうそう）が、光で栄養を作ってくれるんだ。','白い光は昼間の海、青い光は少し深い海の色に近いんだって。','サンゴが白くなるのは「白化」。褐虫藻が抜けてしまった状態で、原因を取り除けば戻ることもあるよ。','サンゴの健康は「光・水流・水質・塩分・水温」のバランスで決まるよ。','新しいサンゴは、置いた場所の光が合っているかタップして確かめてね。','ディスクコーラルみたいに、暗い場所が好きなサンゴもいるんだ。','成長100%になったサンゴは株分けできる。育てて増やすのもサンゴ趣味の楽しみ！'];const m=MISSIONS[S.mi];say(m&&Math.random()<0.4?`今のミッション：「${m.title}」\n${m.desc}`:tips[(Math.random()*tips.length)|0]);};
+let toastT=0;function toast(s){const el=document.getElementById('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400);}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function updMission(){const m=MISSIONS[S.mi];document.getElementById('mTitle').innerHTML=m?`<b>ミッション ${S.mi+1}/${MISSIONS.length}</b>　${esc(m.title)}`:'<b>全ミッション達成！</b>　自由に水槽づくりを楽しもう';}
+
+/* ============================ サムネイル（左＝白い光／右＝青い光） ============================ */
+const TH=new Map();
+function thumbBg(g,w,h,m){const gr=g.createLinearGradient(0,0,0,h);[0,0.5,1].forEach((s,i)=>gr.addColorStop(s,rgba(mixc(hx(BG_D[i]),hx(BG_N[i]),m))));g.fillStyle=gr;g.fillRect(0,0,w,h);g.fillStyle=rgba(lit(hx('#efe2c4'),m,1));g.fillRect(0,h*0.84,w,h);}
+function coralThumb(sp,morph,w=200,h=125,mode='split'){const key=[sp,morph,w,h,mode].join();if(TH.has(key))return TH.get(key);
+ const k=2,c=document.createElement('canvas');c.width=w*k;c.height=h*k;const g=c.getContext('2d');const prev=ctx,pm=L.m,pb=L.b;ctx=g;
+ const halves=mode==='split'?[[0,0,w/2],[1,w/2,w/2]]:[[mode==='blue'?1:0,0,w]];
+ for(const[m,x0,ww]of halves){g.save();g.setTransform(k,0,0,k,0,0);g.beginPath();g.rect(x0,0,ww,h);g.clip();L.m=m;L.b=1;thumbBg(g,w,h,m);
+  const s=CORALS[sp].thumb*(h/125);g.translate(w/2,h*0.86);g.scale(s,s);const fake={sp,morph,g:1,h:1,ret:0,seed:4242,x:0,y:0};R[sp](fake,palOf(fake),1.3,geo(fake));g.restore();}
+ g.setTransform(k,0,0,k,0,0);if(mode==='split'){g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=1.5;g.beginPath();g.moveTo(w/2,0);g.lineTo(w/2,h);g.stroke();g.font='bold 10px sans-serif';g.fillStyle='rgba(30,50,80,.8)';g.fillText('☀ 白い光',6,14);g.fillStyle='rgba(255,255,255,.9)';g.fillText('🌙 青い光',w/2+6,14);}
+ ctx=prev;L.m=pm;L.b=pb;const url=c.toDataURL();TH.set(key,url);return url;}
+function fishThumb(sp,w=200,h=125){const key='f'+sp;if(TH.has(key))return TH.get(key);const k=2,c=document.createElement('canvas');c.width=w*k;c.height=h*k;const g=c.getContext('2d');const prev=ctx,pm=L.m,pb=L.b;ctx=g;L.m=0;L.b=1;
+ g.setTransform(k,0,0,k,0,0);thumbBg(g,w,h,0);const f={sp,x:w/2,y:h*0.48,vx:10,vy:0,face:1,ph:0,blink:0,happy:0};g.translate(w/2,h*0.48);g.scale(2.3,2.3);g.translate(-w/2,-h*0.48);drawFish(f,0.3);
+ ctx=prev;L.m=pm;L.b=pb;const url=c.toDataURL();TH.set(key,url);return url;}
+const stars=n=>'★'.repeat(n)+'<span style="opacity:.3">'+'★'.repeat(5-n)+'</span>';
+const chip=g=>`<span class="chip ${g==='LPS'?'lps':g==='SPS'?'sps':''}">${g}</span>`;
+const lightWord=v=>v<0.25?'弱めでOK':v<0.45?'ふつう':v<0.65?'強め':'とても強い';
+const flowWord=v=>v<0.2?'弱め':v<0.4?'ふつう':'強め';
+
+/* ============================ サンゴの情報カード ============================ */
+function openCard(id){selId=id;cardNext=0;renderCard();document.getElementById('card').classList.remove('hidden');}
+function closeCard(){selId=null;document.getElementById('card').classList.add('hidden');}
+let sellArm=0;
+function renderCard(){const c=S.corals.find(c=>c.id===selId);if(!c){closeCard();return;}const sp=CORALS[c.sp];const el=document.getElementById('card');
+ if(c.dead){el.innerHTML=`<button class="xbtn" data-a="close">×</button><div class="ch"><img src="${coralThumb(c.sp,c.morph,120,80)}" style="filter:grayscale(1) brightness(.85)"><div><h3>${sp.name}</h3><div style="font-size:12px;color:var(--sub)">Day ${c.deadDay} にお別れ</div>${chip(sp.group)}</div></div>
+  <div class="mood">🥀 死んでしまった…</div><ul class="cond"><li><span class="mk x">×</span><span><b>原因</b>　${esc(c.cause||'')}</span></li>
+  <li><span class="mk t">!</span><span>${isSoft(c)?'骨格のないソフトコーラルは、溶けるように消えていく。':'白い骨格だけが残っている。死んだサンゴは水を汚すので、本物の水槽でも早めに取り除く。'}</span></li>
+  <li><span class="mk o">💡</span><span>サンゴは弱ってもすぐには死なない。白っぽくなってきたら（白化）、タップして原因を直せば元気を取り戻せることが多いよ。</span></li></ul>
+  <div class="btns">${isSoft(c)?'':'<button data-a="remove" class="hot">🧹 取り除く</button>'}<button data-a="zukan">📖 図鑑</button></div>`;return;}
+ const ev=c._ev||evalCoral(c);const hp=Math.round(c.h*100),gp=Math.round(Math.min(c.g,1)*100);
+ el.innerHTML=`<button class="xbtn" data-a="close">×</button>
+ <div class="ch"><img src="${coralThumb(c.sp,c.morph,120,80)}"><div><h3>${sp.name}</h3><div style="font-size:12px;color:var(--sub)">カラー：${sp.morphs[c.morph].name}</div>${chip(sp.group)}<span class="stars">${stars(sp.diff)}</span></div></div>
+ <div class="mood">${mood(c.h)}</div>${c.crit>0&&c.h<0.15?`<div style="font-size:12.5px;font-weight:700;color:var(--bad)">⚠ 危険！ このままだと死んでしまう（あと約${Math.max(1,Math.ceil((DEATH_T-c.crit)/180*24))}時間）</div>`:''}
+ <div class="row2">健康<div class="gbar"><i style="width:${hp}%;background:${c.h>0.7?'var(--ok)':c.h>0.45?'var(--warn)':'var(--bad)'}"></i></div>${hp}%</div>
+ <div class="row2">成長<div class="gbar"><i style="width:${gp}%;background:#5aa9ff"></i></div>${gp}%</div>
+ <div style="font-size:11.5px;color:var(--sub)">${sp.nofrag?'この子は株分けしないサンゴ':c.g>=1?'✂ 株分けできるよ！':'成長100%で株分けできるようになる'}</div>
+ <ul class="cond">${condList(c,ev).map(([l,m,s])=>`<li><span class="mk ${m}">${m==='o'?'○':m==='t'?'△':'×'}</span><span><b>${l}</b>　${esc(s)}</span></li>`).join('')}</ul>
+ <div class="btns"><button data-a="move">↔ 移動</button>${!sp.nofrag&&c.g>=1?'<button data-a="frag" class="hot">✂ 株分け</button>':''}<button data-a="zukan">📖 図鑑</button><button data-a="sell">${sellArm===c.id?'本当に手放す？':'👋 手放す'}</button></div>`;}
+document.getElementById('card').addEventListener('click',e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(!a)return;const c=S.corals.find(c=>c.id===selId);if(!c)return;const sp=CORALS[c.sp];
+ if(a==='close')closeCard();
+ if(a==='move'){startPlace({sp:c.sp,morph:c.morph,seed:c.seed,moveId:c.id});}
+ if(a==='frag'&&c.g>=1&&!sp.nofrag){c.g=0.62;const gain=Math.round(sp.price*0.45+15);S.cp+=gain;S.frags++;S.flags.frag=true;sparkle(c.x,c.y-30,18);toast(`✂ 株分け成功！ 仲間のアクアリストに譲って 💎+${gain}`);renderCard();save();}
+ if(a==='zukan'){openZukan(c.sp,c.morph);}
+ if(a==='remove'&&c.dead){S.corals=S.corals.filter(o=>o!==c);closeCard();bubbles(c.x,c.y,8);toast('🧹 骨格を取り除いたよ');save();return;}
+ if(c.dead)return;
+ if(a==='sell'){if(sellArm!==c.id){sellArm=c.id;renderCard();return;}sellArm=0;const gain=Math.round(sp.price*0.4);S.cp+=gain;S.corals=S.corals.filter(o=>o!==c);closeCard();toast(`${sp.name}をショップに引き取ってもらったよ 💎+${gain}`);save();}});
+
+/* ============================ モーダル（ショップ／図鑑／ミッション／遊び方） ============================ */
+const modal=document.getElementById('modal'),mbody=document.getElementById('mbody');
+function openModal(html){mbody.innerHTML=html;modal.classList.remove('hidden');}
+function closeModal(){modal.classList.add('hidden');}
+document.getElementById('mclose').onclick=closeModal;modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+let shopTab='coral';
+function openShop(tab=shopTab){shopTab=tab;const cp=Math.floor(S.cp);let body='';
+ if(tab==='coral'){body=`<div class="grid">${CORAL_IDS.map(id=>{const sp=CORALS[id];const full=S.corals.length>=16;return`<div class="item"><img src="${coralThumb(id,0)}"><h4>${sp.name}</h4><div>${chip(sp.group)}<span class="stars">${stars(sp.diff)}</span></div><div class="catch">${sp.catch}</div><div style="font-size:11px">☀ 光：${lightWord(sp.light[0])}　🌊 水流：${flowWord(sp.flow[0])}</div><div class="meta"><span class="price">💎${sp.price}</span><button class="pbtn hot" data-buy="${id}" ${cp<sp.price||full?'disabled':''}>${full?'満員':'迎える'}</button></div></div>`;}).join('')}</div><p style="font-size:12px;margin-top:10px;color:var(--sub)">左半分＝白い光、右半分＝青い光で見たときの色。カラー（色違い）は迎えるまでのお楽しみ！</p>`;}
+ if(tab==='fish'){body=`<div class="grid">${Object.keys(FISH).map(id=>{const f=FISH[id];const n=S.fish.filter(x=>x.sp===id).length;const lim=n>=f.max||S.fish.length>=6;return`<div class="item"><img src="${fishThumb(id)}"><h4>${f.name}</h4><div class="catch">${f.desc}</div><div style="font-size:11px">💡${f.fact}</div><div class="meta"><span class="price">💎${f.price}</span><button class="pbtn hot" data-fish="${id}" ${cp<f.price||lim?'disabled':''}>${lim?'これ以上は無理':'迎える'}</button></div></div>`;}).join('')}</div>`;}
+ if(tab==='eq'){body=`<div class="grid">${Object.keys(EQ_META).map(k=>{const cur=S.eq[k],nx=EQ[k][cur+1];const[ic,lb]=EQ_META[k];return`<div class="item"><h4>${ic} ${lb}</h4><div>いま：<b>${EQ[k][cur].name}</b></div>${nx?`<div style="font-size:12px">つぎ：<b>${nx.name}</b></div><div class="catch">${nx.desc}</div><div class="meta"><span class="price">💎${nx.price}</span><button class="pbtn hot" data-eq="${k}" ${cp<nx.price?'disabled':''}>導入する</button></div>`:'<div class="catch">最高グレード！</div>'}</div>`;}).join('')}</div>`;}
+ openModal(`<h2>🛒 ショップ　<span style="font-size:15px;color:#ff7a1a">💎${cp}</span></h2><div class="tabs"><button data-tab="coral" class="${tab==='coral'?'on':''}">🪸 サンゴ</button><button data-tab="fish" class="${tab==='fish'?'on':''}">🐠 魚</button><button data-tab="eq" class="${tab==='eq'?'on':''}">🔧 機材</button></div>${body}`);}
+mbody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled){const it=e.target.closest('[data-z]');if(it)openZukan(it.dataset.z);return;}
+ if(b.dataset.tab){openShop(b.dataset.tab);return;}
+ if(b.dataset.buy){const id=b.dataset.buy,sp=CORALS[id];if(S.cp<sp.price)return;S.cp-=sp.price;const tot=sp.morphs.reduce((a,m)=>a+m.w,0);let r=Math.random()*tot,mi=0;for(;mi<sp.morphs.length-1;mi++){r-=sp.morphs[mi].w;if(r<0)break;}startPlace({sp:id,morph:mi,seed:(Math.random()*1e9)|0});return;}
+ if(b.dataset.fish){const f=FISH[b.dataset.fish];if(S.cp<f.price)return;S.cp-=f.price;S.fish.push({sp:b.dataset.fish});S.fishZ[b.dataset.fish]=true;const nf=spawnFish(b.dataset.fish,true);nf.x=600;FISHES.push(nf);bubbles(600,40,14);closeModal();toast(`${f.name}が仲間になったよ！`);say(`${f.name}：${f.desc}`);save();return;}
+ if(b.dataset.eq){const k=b.dataset.eq,nx=EQ[k][S.eq[k]+1];if(!nx||S.cp<nx.price)return;S.cp-=nx.price;S.eq[k]++;toast(`${nx.name}を導入したよ！`);say(nx.desc);if(k==='led')sparkle(600,40,20);openShop('eq');save();return;}
+ if(b.dataset.zt){openZukan(null,0,b.dataset.zt);return;}
+ if(b.dataset.zm!==undefined){openZukan(b.dataset.zs,+b.dataset.zm,'coral',b.dataset.mode);return;}
+ if(b.dataset.back){openZukan();return;}
+ if(b.dataset.help==='reset'){if(b.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{b.dataset.arm='1';b.textContent='本当に消す？（もう一度押す）';}}});
+let zTab='coral';
+function openZukan(sp=null,morph=0,tab=zTab,mode='split'){zTab=tab;
+ if(sp){const d=CORALS[sp],found=S.zukan[sp]||[];if(!found.length&&!DEMO){openZukan();return;}if(!found.includes(morph)&&!DEMO)morph=found[0];
+  openModal(`<h2>📖 ${d.name} <span style="font-size:13px;color:var(--sub)">${d.en}</span></h2><div class="detail"><div><img src="${coralThumb(sp,morph,400,250,mode)}">
+  <div class="morphs">${['split','day','blue'].map(m=>`<button data-zs="${sp}" data-zm="${morph}" data-mode="${m}" class="${mode===m?'on':''}">${m==='split'?'白｜青':m==='day'?'☀ 白い光':'🌙 青い光'}</button>`).join('')}</div>
+  <div class="morphs">カラー：${d.morphs.map((m,i)=>(found.includes(i)||DEMO)?`<button data-zs="${sp}" data-zm="${i}" data-mode="${mode}" class="${i===morph?'on':''}">${m.name}</button>`:`<span>？？？</span>`).join('')}</div>
+  <div style="font-size:12px;margin-top:6px;color:var(--sub)">カラー発見 ${found.length}/${d.morphs.length}</div></div>
+  <dl><div>${chip(d.group)}<span class="stars">${stars(d.diff)}</span></div><dt>ひとことで言うと</dt><dd>${d.catch}</dd><dt>どんなサンゴ？</dt><dd>${d.desc}</dd><dt>ここが魅力</dt><dd>${d.charm}</dd><dt>育てるコツ</dt><dd>${d.tip}</dd><dt>好きな環境</dt><dd>☀ 光：${lightWord(d.light[0])}${d.light[1]<0.6?'（強すぎはNG）':''}　🌊 水流：${flowWord(d.flow[0])}${d.flow[1]<0.6?'（強すぎはNG）':''}${d.sand?'　🏖 砂の上':''}</dd><dt>まめ知識</dt><dd>${d.fact}</dd></dl></div>
+  <div style="margin-top:12px"><button class="pbtn" data-back="1">← 図鑑の一覧へ</button></div>`);return;}
+ const n=CORAL_IDS.filter(id=>S.zukan[id]).length,nf=Object.keys(FISH).filter(id=>S.fishZ[id]).length;
+ const tabs=`<div class="tabs"><button data-zt="coral" class="${tab==='coral'?'on':''}">🪸 サンゴ ${n}/${CORAL_IDS.length}</button><button data-zt="fish" class="${tab==='fish'?'on':''}">🐠 魚 ${nf}/${Object.keys(FISH).length}</button></div>`;
+ const grid=tab==='coral'?CORAL_IDS.map(id=>{const d=CORALS[id],ok=S.zukan[id]||DEMO;return`<div class="item ${ok?'clickable':'locked'}" ${ok?`data-z="${id}"`:''}><img src="${coralThumb(id,ok&&S.zukan[id]?S.zukan[id][0]:0)}"><h4>${ok?d.name:'？？？'}</h4><div>${chip(d.group)}<span class="stars">${stars(d.diff)}</span></div><div class="catch">${ok?d.catch:'ショップで迎えると登録されるよ'}</div></div>`;}).join('')
+  :Object.keys(FISH).map(id=>{const f=FISH[id],ok=S.fishZ[id];return`<div class="item ${ok?'':'locked'}"><img src="${fishThumb(id)}"><h4>${ok?f.name:'？？？'}</h4><div class="catch">${ok?f.desc:'ショップで迎えると登録されるよ'}</div>${ok?`<div style="font-size:11px">💡${f.fact}</div>`:''}</div>`;}).join('');
+ const lost=S.lost||[];const mem=lost.length?`<div style="margin-top:14px;font-size:12.5px"><b>🥀 お別れしたサンゴ：${lost.length}株</b><ul style="list-style:none;margin-top:4px;color:var(--sub)">${lost.slice(-6).reverse().map(l=>`<li>Day ${l.day}　${CORALS[l.sp].name}　― 原因：${esc(l.cause)}</li>`).join('')}</ul></div>`:'';
+ openModal(`<h2>📖 図鑑</h2>${tabs}<div class="grid">${grid}</div>${tab==='coral'?mem:''}`);}
+function openMissions(){openModal(`<h2>🎯 ミッション</h2><ul class="mlist">${MISSIONS.map((m,i)=>`<li class="${i<S.mi?'done':i===S.mi?'cur':''}"><span class="ic">${i<S.mi?'✅':i===S.mi?'👉':'🔒'}</span><div><b>${i<=S.mi?esc(m.title):'？？？'}</b>　<small>💎${m.reward}</small><br><small>${i<=S.mi?esc(m.desc):'前のミッションをクリアすると表示'}</small></div></li>`).join('')}</ul>`);}
+function openHelp(){openModal(`<h2>🐠 遊び方</h2><div class="help">
+ <p><b>目的</b>：サンゴを迎えて、元気に育てよう。元気なサンゴは💎（サンゴポイント）を生み出す。💎で新しいサンゴ・魚・機材を迎えられる。</p>
+ <p><b>サンゴの健康</b>は「☀光・🌊水流・💧水のきれいさ・🧂塩分・🌡水温」のバランスで決まる。サンゴをタップすると、何が足りないかが分かるよ。元気がないと色があせて白っぽくなる（白化）。</p>
+ <p><b>光</b>：水槽の上ほど光が強い。サンゴを置くときの<span style="color:#2fae6a;font-weight:700">緑の帯</span>が、その子にちょうどいい高さ。照明は「白／ミックス／青」やスライダーで切り替え。青にすると蛍光色に光るよ。「⏱1日の光」で本物の水槽のような1日の変化も見られる。</p>
+ <p><b>お世話</b>：🔄水換え（水をきれいに）、💧足し水（蒸発で濃くなった塩分を戻す）、🍤エサ（魚が喜ぶ・LPSがよく育つ。あげすぎると水が汚れる）。</p>
+ <p><b>株分け</b>：成長100%のサンゴは株分けして💎にできる。</p>
+ <p><b>サンゴの死</b>：健康が15%を切ったまま放っておくと、サンゴは死んでしまう（ゲームの半日ほど）。ソフトコーラルは溶けて消え、ハードコーラルは白い骨格が残る。骨格は水を汚すので「取り除く」をしよう。死ぬ前にクマノミ先生が知らせてくれるよ。</p>
+ <p>ゲームの1日は約3分。進み具合は自動で保存されるよ（このブラウザの中だけ）。</p>
+ <p style="font-size:12px;color:var(--sub)">※ ゲーム内の数値や仕組みは、楽しく学べるように簡略化したもの。本物のサンゴ飼育の目安とは異なる。</p>
+ <p><button class="pbtn" data-help="reset">🗑 セーブを消して最初から</button></p></div>`);}
+document.getElementById('shopBtn').onclick=()=>openShop();
+document.getElementById('zukanBtn').onclick=()=>openZukan();
+document.getElementById('missionBtn').onclick=openMissions;
+document.getElementById('mchip').onclick=openMissions;
+document.getElementById('helpBtn').onclick=openHelp;
+addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCard();if(PLACE)document.getElementById('placeCancel').click();}if(!S.started||e.target.tagName==='INPUT')return;if(e.key==='1')setLight(0);if(e.key==='2')setLight(0.5);if(e.key==='3')setLight(1);});
+addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,150);});
+
+/* ============================ タイトル・起動 ============================ */
+function demoCorals(){const D=[['acropora',0,672,0],['montipora',0,176,0],['torch',1,300,0],['toadstool',0,960,0],['gsp',0,1080,0],['zoa',0,500,0],['mushroom',1,110,560],['brain',0,800,640],['zoa',1,1150,0],['mushroom',0,380,634]];
+ return D.map(([sp,morph,x,y],i)=>{const yy=y||surfaceY(x)+14;return{id:1000+i,sp,morph,x,y:yy,sand:yy>=sandTop(x)-6,g:1,h:1,seed:1234+i*97,ret:0};});}
+function begin(){S.started=true;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');L.tm=S.flags.lastLight??0;syncFish(S.fish);updMission();syncLightUI();
+ if(!S.flags.intro){S.flags.intro=true;say('ようこそ！ ぼくはクマノミ先生。ここはきみの、はじめてのサンゴ水槽だよ。');say('サンゴって、実は「動物」なんだ。体の中に褐虫藻（かっちゅうそう）という小さな藻を住まわせて、光で栄養を作ってもらっているんだよ。');say('だから照明がとっても大事。まずは🛒ショップで、最初のサンゴを迎えよう！');}
+ else say(`おかえり！ Day ${S.day} だよ。サンゴたちの様子を見てあげてね。`);save();}
+function syncFish(list){FISHES=list.map(f=>spawnFish(f.sp));}
+document.getElementById('startBtn').onclick=begin;
+document.getElementById('resetBtn').onclick=e=>{if(e.target.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{e.target.dataset.arm=1;e.target.textContent='本当に消す？（もう一度押す）';}};
+addEventListener('beforeunload',()=>{S.flags.lastLight=L.tm;save();});
+window.addEventListener('error',e=>{document.body.dataset.err=(e.message||'')+' @'+(e.lineno||'');});
+
+resize();initCaustics();titleCorals=demoCorals();
+if(DEMO){S=DEF();S.started=true;S.cp=3000;S.eq={pump:2,led:2,skimmer:1,cooler:1,ato:1};S.corals=demoCorals();S.fish=[{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'},{sp:'firefish'}];CORAL_IDS.forEach(id=>S.zukan[id]=[0]);S.mi=MISSIONS.length;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFish(S.fish);updMission();}
+else if(S.started){document.getElementById('startBtn').textContent='つづきから';document.getElementById('resetBtn').classList.remove('hidden');S.started=false;syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);}
+else syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);
+if(Q.get('light')==='blue'){L.m=L.tm=1;}if(Q.get('light')==='mix'){L.m=L.tm=0.5;}
+if(Q.has('shot'))document.body.classList.add('shot');
+if(Q.has('card')&&DEMO)setTimeout(()=>openCard(1002),300);
+if(Q.has('shop')&&DEMO)setTimeout(()=>openShop('coral'),300);
+if(Q.has('zukan')&&DEMO)setTimeout(()=>openZukan('torch',1),300);
+syncLightUI();updMission();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
