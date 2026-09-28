@@ -670,8 +670,6 @@ function drawCoral(c,t){const s=coralScale(c)*(c.dead&&c.melt?1-c.melt*0.75:1);c
  ctx.fillStyle=`rgba(10,20,40,${0.16*L.b})`;ctx.beginPath();ep(0,3,28*s,6*s);ctx.fill();
  ctx.scale(s,s);const rare=!c.dead&&CORALS[c.sp].morphs[c.morph].rare&&c.h>0.5;const sp=CORALS[c.sp];
  if(rare){ctx.save();ctx.globalCompositeOperation='lighter';const pu=0.8+0.2*Math.sin(t*2.2+c.seed);
-  const top=-sp.hy-260,sg=ctx.createLinearGradient(0,top,0,6);const la=(0.26+0.14*L.m)*pu;sg.addColorStop(0,'rgba(255,225,140,0)');sg.addColorStop(0.55,`rgba(255,225,140,${la*0.6})`);sg.addColorStop(1,`rgba(255,215,120,${la})`);
-  ctx.fillStyle=sg;ctx.beginPath();ctx.moveTo(-sp.hr*0.35,top);ctx.lineTo(sp.hr*0.35,top);ctx.lineTo(sp.hr*1.15,6);ctx.lineTo(-sp.hr*1.15,6);ctx.closePath();ctx.fill(); // 金色のスポットライト
   glow(0,-sp.hy*0.5,sp.hr*1.7*pu,(sp.hy*0.9+34)*pu,[255,200,90],0.55+0.2*L.m);
   ctx.lineWidth=3.2;ctx.strokeStyle=rgba(hueShift([255,110,200],(t*90)%360,1.2),0.85);ctx.beginPath();ep(0,4,sp.hr*1.05,11);ctx.stroke();ctx.lineWidth=1.6;ctx.strokeStyle=rgba(hueShift([120,220,255],(t*90+120)%360,1.2),0.7);ctx.beginPath();ep(0,4,sp.hr*1.2,14);ctx.stroke(); // 虹色の輪
   ctx.restore();ctx.globalAlpha=1;}
