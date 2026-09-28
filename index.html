@@ -106,6 +106,8 @@ body.night .item{background:rgba(40,50,120,.45)}
 .detail img{width:100%;border-radius:14px}
 .detail dl{font-size:13px;line-height:1.7}
 .detail dt{font-weight:700;color:#ff7a1a;margin-top:8px;font-size:12px}
+.znav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-4px 0 10px}.znav span{font-size:12px;color:var(--sub);white-space:nowrap}.znav button{border:none;border-radius:12px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:rgba(0,80,140,.1);color:inherit;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.znav button:hover{background:#5a6cff;color:#fff}
+#zimg{touch-action:pan-y}
 .morphs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .morphs button{border:none;border-radius:10px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer;background:rgba(0,80,140,.1);color:inherit}
 .morphs button.on{background:#5a6cff;color:#fff}
@@ -712,8 +714,8 @@ const FDRAW={
   ctx.fillStyle=rgba(lit(hx('#ffb05a')),0.85);ctx.beginPath();ctx.ellipse(2,3,6,3.6,0.6+Math.sin(t*9+f.ph)*0.4,0,TAU);ctx.fill();
   shade(h,14);return[9,-3,3.7,h];},
 };
-const fishScale=f=>FSZ*FISH[f.sp].size*(0.7+0.32*(f.ref&&f.ref.g!=null?f.ref.g:0.9));
-function drawFish(f,t){const sp=FISH[f.sp];const s=fishScale(f)*(1+f.happy*0.12);ctx.save();ctx.translate(f.x,f.y+Math.sin(t*2+f.ph)*1.5);ctx.rotate(clamp(f.vy/160,-0.35,0.35));ctx.scale((Math.abs(f.face)<0.12?0.12*Math.sign(f.face||1):f.face)*s,s);
+const fishScale=f=>FSZ*FISH[f.sp].size*(0.55+0.5*(f.dg!=null?f.dg:(f.ref&&f.ref.g!=null?f.ref.g:0.9)));
+function drawFish(f,t){const sp=FISH[f.sp];const s=fishScale(f)*(1+f.happy*0.05);ctx.save();ctx.translate(f.x,f.y+Math.sin(t*2+f.ph)*1.5);ctx.rotate(clamp(f.vy/160,-0.35,0.35));ctx.scale((Math.abs(f.face)<0.12?0.12*Math.sign(f.face||1):f.face)*s,s);
  const spd=Math.hypot(f.vx,f.vy);const wag=Math.sin(t*(7+spd*0.12)+f.ph)*(1.2+spd*0.03);
  const[ex,ey,er,h]=FDRAW[f.sp](f,t,wag);
  ctx.fillStyle=lc('#ffffff');ctx.globalAlpha=0.35;ctx.beginPath();ctx.ellipse(2,h*0.35,4,2,0.4+Math.sin(t*9+f.ph)*0.3,0,TAU);ctx.fill();ctx.globalAlpha=1;
@@ -769,12 +771,13 @@ function drawParts(t){ctx.fillStyle=L.m>0.5?`rgba(170,190,255,${0.35*L.b})`:`rgb
   else if(p.type==='ripple'){ctx.strokeStyle=`rgba(255,255,255,${0.6*a})`;ctx.lineWidth=2;ctx.beginPath();ep(p.x,p.y,(1-a)*40+4,((1-a)*40+4)*0.4);ctx.stroke();}}}
 
 /* ============================ 魚の動き ============================ */
+function growFish(r,d){const b=r.g??0.8;r.g=Math.min(1,b+d);for(const m of[0.5,1])if(b<m&&r.g>=m){const n=r.name||FISH[r.sp].name;toast(m>=1?`🐟 ${n}が立派なおとなになった！`:`🐟 ${n}がひとまわり大きくなった！`);}}
 let FISHES=[];const FSZ=1.45;
 function spawnFish(sp,top){return{sp,x:CX+(Math.random()-0.5)*1.4*Math.min(tankHW(),450),y:top?40:120+Math.random()*320,vx:0,vy:top?40:0,tx:600,ty:300,face:1,ph:Math.random()*TAU,blink:0,happy:0,next:0};}
 function updFish(dt,t,corals){const hosts=corals.filter(c=>!c.dead&&['torch','hammer','toadstool','goniopora'].includes(c.sp));
  for(const f of FISHES){const sp=FISH[f.sp];let speed=sp.speed;let tgt=null;
   if(FOOD.length){let best=1e9;for(const p of FOOD){if(p.dead||p.y>sandTop(p.x)-4)continue;const d=(p.x-f.x)**2+(p.y-f.y)**2;if(d<best){best=d;tgt=p;}}}
-  if(tgt){f.tx=tgt.x;f.ty=tgt.y;speed*=1.7;if(Math.hypot(tgt.x-f.x,tgt.y-f.y)<13){tgt.dead=true;f.happy=1;addPart({type:'heart',x:f.x,y:f.y-16,vx:0,vy:-20,life:1.2,max:1.2,s:10});}}
+  if(tgt){f.tx=tgt.x;f.ty=tgt.y;speed*=1.7;if(Math.hypot(tgt.x-f.x,tgt.y-f.y)<13){tgt.dead=true;f.happy=1;addPart({type:'heart',x:f.x,y:f.y-16,vx:0,vy:-20,life:1.2,max:1.2,s:10});if(f.ref&&S.started&&!VIEW)growFish(f.ref,0.015);}}
   else if(t>f.next){f.next=t+2.5+Math.random()*4;
    if(f.sp==='clown'&&hosts.length&&Math.random()<0.5){const h=hosts[(Math.random()*hosts.length)|0];f.tx=h.x+(Math.random()-0.5)*50;f.ty=h.y-CORALS[h.sp].hy*coralScale(h)-12-Math.random()*20;}
    else if(f.sp==='blenny'||f.sp==='mandarin'){const x=tx0()+60+Math.random()*(2*tankHW()-120);f.tx=x;f.ty=Math.min(surfaceY(x),sandTop(x))-10;f.next=t+4+Math.random()*6;}
@@ -784,6 +787,7 @@ function updFish(dt,t,corals){const hosts=corals.filter(c=>!c.dead&&['torch','ha
   const dx=f.tx-f.x,dy=f.ty-f.y,d=Math.hypot(dx,dy)||1;const k=Math.min(1,d/40);const a=Math.min(1,dt*2.2);
   f.vx+=(dx/d*speed*k-f.vx)*a;f.vy+=(dy/d*speed*k*0.7-f.vy)*a;f.x+=f.vx*dt;f.y+=f.vy*dt;f.x=clamp(f.x,tx0()+22,tx1()-22);f.y=clamp(f.y,60,sandTop(f.x)-(f.sp==='blenny'||f.sp==='mandarin'?12:32));
   if(Math.abs(f.vx)>4){f.face+=(Math.sign(f.vx)-f.face)*Math.min(1,dt*5);}
+  const tg=f.ref&&f.ref.g!=null?f.ref.g:0.9;f.dg=f.dg==null?tg:f.dg+(tg-f.dg)*Math.min(1,dt*0.8);
   f.happy=Math.max(0,f.happy-dt*0.7);if(f.blink>0)f.blink-=dt;else if(Math.random()<dt*0.3)f.blink=0.14;}}
 
 /* ============================ お掃除係とコケ ============================ */
@@ -854,7 +858,7 @@ function simulate(dt,t){if(!S.started||VIEW)return;const dh=dt*HPS;
  if(S.heat>0)S.heat-=dh/24;const tt=25.5+(S.heat>0?(S.eq.cooler?0.4:3.6*TKi.stab):0);S.temp+=(tt-S.temp)*(1-Math.exp(-dh/5));
  if(S.fedT>0)S.fedT-=dh;
  S.algae=clamp(S.algae+dh/24*(5+eqv('led').power*8+(100-S.q)*0.12-crewEat())*TKi.stab,0,100);
- for(const f of S.fish)f.g=Math.min(1,(f.g??0.8)+dh/24*(S.fedT>0?0.16:0.04));
+ for(const f of S.fish)growFish(f,dh/24*(S.fedT>0?0.08:0.02));
  for(const c of S.corals.slice()){const sp=CORALS[c.sp];
   if(c.dead){if(isSoft(c)){c.melt=Math.min(1,(c.melt||0)+dt/5);if(Math.random()<dt*8)addPart({type:'bubble',x:c.x+(Math.random()-0.5)*30,y:c.y-10,vx:0,vy:-25,life:1.5,max:1.5,s:1.5+Math.random()*2,ph:Math.random()*TAU});if(c.melt>=1){S.corals=S.corals.filter(o=>o!==c);if(selId===c.id)closeCard();}}else S.q=Math.max(0,S.q-dh/24*2);continue;}
   const ev=evalCoral(c);c._ev=ev;
@@ -1113,7 +1117,7 @@ document.getElementById('card').addEventListener('click',e=>{const a=e.target.cl
 
 /* ============================ モーダル（ショップ／図鑑／ミッション／遊び方） ============================ */
 const modal=document.getElementById('modal'),mbody=document.getElementById('mbody');
-function openModal(html){mbody.innerHTML=html;modal.classList.remove('hidden');}
+function openModal(html){ZCUR=null;mbody.innerHTML=html;modal.classList.remove('hidden');}
 function closeModal(){modal.classList.add('hidden');}
 document.getElementById('mclose').onclick=closeModal;modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 let shopTab='coral';
@@ -1126,31 +1130,37 @@ function openShop(tab=shopTab){shopTab=tab;const cp=Math.floor(S.cp);let body=''
 mbody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled){const it=e.target.closest('[data-z]');if(it)openZukan(it.dataset.z);return;}
  if(b.dataset.tab){openShop(b.dataset.tab);return;}
  if(b.dataset.buy){const id=b.dataset.buy,sp=CORALS[id];if(S.cp<sp.price)return;S.cp-=sp.price;const tot=sp.morphs.reduce((a,m)=>a+m.w,0);let r=Math.random()*tot,mi=0;for(;mi<sp.morphs.length-1;mi++){r-=sp.morphs[mi].w;if(r<0)break;}startPlace({sp:id,morph:mi,seed:(Math.random()*1e9)|0});return;}
- if(b.dataset.fish){const f=FISH[b.dataset.fish];if(S.cp<f.price)return;S.cp-=f.price;const ref={id:S.nextFid++,sp:b.dataset.fish,g:0.3};S.fish.push(ref);S.fishZ[b.dataset.fish]=true;const nf=Object.assign(spawnFish(b.dataset.fish,true),{ref});nf.x=CX;FISHES.push(nf);bubbles(600,40,14);closeModal();toast(`${f.name}が仲間になったよ！`);say(`${f.name}：${f.desc}`);save();return;}
+ if(b.dataset.fish){const f=FISH[b.dataset.fish];if(S.cp<f.price)return;S.cp-=f.price;const ref={id:S.nextFid++,sp:b.dataset.fish,g:0.2};S.fish.push(ref);S.fishZ[b.dataset.fish]=true;const nf=Object.assign(spawnFish(b.dataset.fish,true),{ref});nf.x=CX;FISHES.push(nf);bubbles(600,40,14);closeModal();toast(`${f.name}が仲間になったよ！`);say(`${f.name}：${f.desc}`);save();return;}
  if(b.dataset.crew){const k=b.dataset.crew,c=CREW[k];if(S.cp<c.price)return;S.cp-=c.price;S.crew[k]=(S.crew[k]||0)+1;syncCrew();toast(`${c.name}が仲間になったよ！`);if(!S.flags.crewTip){S.flags.crewTip=true;say(`${c.name}：${c.desc}\n本物の水槽でも、貝やヤドカリは「クリーンアップクルー」と呼ばれて大活躍するんだ。`);}openShop('crew');save();return;}
  if(b.dataset.eq){const k=b.dataset.eq,nx=EQ[k][S.eq[k]+1];if(!nx||S.cp<nx.price)return;S.cp-=nx.price;S.eq[k]++;toast(`${nx.name}を導入したよ！`);say(k==='tank'?`${nx.name}になった！ 水の量が多いほど、水質や水温が変わりにくくなって安定するんだ。広くなった場所にもサンゴを置いてみよう。`:nx.desc);if(k==='led')sparkle(600,40,20);openShop('eq');save();return;}
  if(b.dataset.zt){openZukan(null,0,b.dataset.zt);return;}
  if(b.dataset.zm!==undefined){openZukan(b.dataset.zs,+b.dataset.zm,'coral',b.dataset.mode);return;}
  if(b.dataset.back){openZukan();return;}
+ if(b.dataset.zn){zukanStep(+b.dataset.zn);return;}
  if(b.dataset.mt){openMissions(b.dataset.mt);return;}
  if(b.dataset.ph==='photo'){closeModal();setTimeout(takePhoto,60);return;}
  if(b.dataset.ph==='share'){copyShare();return;}
  if(b.dataset.help==='reset'){if(b.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{b.dataset.arm='1';b.textContent='本当に消す？（もう一度押す）';}}});
-let zTab='coral';
+let zTab='coral',ZCUR=null;
+const zukanList=()=>CORAL_IDS.filter(id=>DEMO||(S.zukan[id]||[]).length);
+function zukanStep(d){if(!ZCUR)return;const zl=zukanList();const i=zl.indexOf(ZCUR.sp);if(i<0)return;const nx=zl[(i+d+zl.length)%zl.length];openZukan(nx,(S.zukan[nx]||[0])[0],'coral',ZCUR.mode);}
 function openZukan(sp=null,morph=0,tab=zTab,mode='split'){zTab=tab;
- if(sp){const d=CORALS[sp],found=S.zukan[sp]||[];if(!found.length&&!DEMO){openZukan();return;}if(!found.includes(morph)&&!DEMO)morph=found[0];
-  openModal(`<h2>📖 ${d.name} <span style="font-size:13px;color:var(--sub)">${d.en}</span></h2><div class="detail"><div><img src="${coralThumb(sp,morph,400,250,mode)}">
+ ZCUR=null;if(sp){const d=CORALS[sp],found=S.zukan[sp]||[];if(!found.length&&!DEMO){openZukan();return;}if(!found.includes(morph)&&!DEMO)morph=found[0];
+  const zl=zukanList(),zi=zl.indexOf(sp);const zc={sp,mode};
+  const nav=zl.length>1?`<div class="znav"><button data-zn="-1">‹ ${CORALS[zl[(zi-1+zl.length)%zl.length]].name}</button><span>${zi+1} / ${zl.length}</span><button data-zn="1">${CORALS[zl[(zi+1)%zl.length]].name} ›</button></div>`:'';
+  openModal(`<h2>📖 ${d.name} <span style="font-size:13px;color:var(--sub)">${d.en}</span></h2>${nav}<div class="detail"><div><img id="zimg" src="${coralThumb(sp,morph,400,250,mode)}">
   <div class="morphs">${['split','day','blue'].map(m=>`<button data-zs="${sp}" data-zm="${morph}" data-mode="${m}" class="${mode===m?'on':''}">${m==='split'?'白｜青':m==='day'?'☀ 白い光':'🌙 青い光'}</button>`).join('')}</div>
   <div class="morphs">カラー：${d.morphs.map((m,i)=>(found.includes(i)||DEMO)?`<button data-zs="${sp}" data-zm="${i}" data-mode="${mode}" class="${i===morph?'on':''}">${m.rare?'✨':''}${m.name}</button>`:`<span>${m.rare?'✨':''}？？？</span>`).join('')}</div>
   <div style="font-size:12px;margin-top:6px;color:var(--sub)">カラー発見 ${found.length}/${d.morphs.length}</div></div>
   <dl><div>${chip(d.group)}<span class="stars">${stars(d.diff)}</span></div><dt>ひとことで言うと</dt><dd>${d.catch}</dd><dt>どんなサンゴ？</dt><dd>${d.desc}</dd><dt>ここが魅力</dt><dd>${d.charm}</dd><dt>育てるコツ</dt><dd>${d.tip}</dd><dt>好きな環境</dt><dd>☀ 光：${lightWord(d.light[0])}${d.light[1]<0.6?'（強すぎはNG）':''}　🌊 水流：${flowWord(d.flow[0])}${d.flow[1]<0.6?'（強すぎはNG）':''}${d.sand?'　🏖 砂の上':''}</dd><dt>まめ知識</dt><dd>${d.fact}</dd></dl>${SHOP_URL?`<a class="pbtn hot" style="display:inline-block;margin-top:10px;text-decoration:none" href="${SHOP_URL}" target="_blank" rel="noopener">🛒 本物の${d.name}を見る</a>`:''}</div>
-  <div style="margin-top:12px"><button class="pbtn" data-back="1">← 図鑑の一覧へ</button></div>`);return;}
+  <div style="margin-top:12px"><button class="pbtn" data-back="1">← 図鑑の一覧へ</button></div>`);ZCUR=zc;return;}
  const n=CORAL_IDS.filter(id=>S.zukan[id]).length,nf=Object.keys(FISH).filter(id=>S.fishZ[id]).length;
  const tabs=`<div class="tabs"><button data-zt="coral" class="${tab==='coral'?'on':''}">🪸 サンゴ ${n}/${CORAL_IDS.length}</button><button data-zt="fish" class="${tab==='fish'?'on':''}">🐠 魚 ${nf}/${Object.keys(FISH).length}</button></div>`;
  const grid=tab==='coral'?CORAL_IDS.map(id=>{const d=CORALS[id],ok=S.zukan[id]||DEMO;return`<div class="item ${ok?'clickable':'locked'}" ${ok?`data-z="${id}"`:''}><img src="${coralThumb(id,ok&&S.zukan[id]?S.zukan[id][0]:0)}"><h4>${ok?d.name:'？？？'}</h4><div>${chip(d.group)}<span class="stars">${stars(d.diff)}</span></div><div class="catch">${ok?d.catch:'ショップで迎えると登録されるよ'}</div></div>`;}).join('')
   :Object.keys(FISH).map(id=>{const f=FISH[id],ok=S.fishZ[id];return`<div class="item ${ok?'':'locked'}"><img src="${fishThumb(id)}"><h4>${ok?f.name:'？？？'}</h4><div class="catch">${ok?f.desc:'ショップで迎えると登録されるよ'}</div>${ok?`<div style="font-size:11px">💡${f.fact}</div>`:''}</div>`;}).join('');
  const lost=S.lost||[];const mem=lost.length?`<div style="margin-top:14px;font-size:12.5px"><b>🥀 お別れしたサンゴ：${lost.length}株</b><ul style="list-style:none;margin-top:4px;color:var(--sub)">${lost.slice(-6).reverse().map(l=>`<li>Day ${l.day}　${CORALS[l.sp].name}　― 原因：${esc(l.cause)}</li>`).join('')}</ul></div>`:'';
  openModal(`<h2>📖 図鑑</h2>${tabs}<div class="grid">${grid}</div>${tab==='coral'?mem:''}`);}
+{let zx=null;mbody.addEventListener('pointerdown',e=>{zx=ZCUR&&e.target.id==='zimg'?e.clientX:null;});mbody.addEventListener('pointerup',e=>{if(zx!=null&&Math.abs(e.clientX-zx)>50)zukanStep(e.clientX<zx?1:-1);zx=null;});}
 function openMissions(tab='m'){const A=S.ach||{};const na=ACH.filter(a=>A[a.id]).length;const tabs=`<div class="tabs"><button data-mt="m" class="${tab==='m'?'on':''}">🎯 ミッション ${Math.min(S.mi,MISSIONS.length)}/${MISSIONS.length}</button><button data-mt="a" class="${tab==='a'?'on':''}">🏅 称号 ${na}/${ACH.length}</button></div>`;
  if(tab==='a'){openModal(`<h2>🏅 称号</h2>${tabs}<ul class="mlist">${ACH.map(a=>`<li class="${A[a.id]?'':'done'}"><span class="ic">${A[a.id]?a.icon:'🔒'}</span><div><b>${A[a.id]?a.name:'？？？'}</b>${A[a.id]?`　<small>Day ${A[a.id]}</small>`:''}<br><small>${a.desc}</small></div></li>`).join('')}</ul>`);return;}
  openModal(`<h2>🎯 ミッション</h2>${tabs}<ul class="mlist">${MISSIONS.map((m,i)=>`<li class="${i<S.mi?'done':i===S.mi?'cur':''}"><span class="ic">${i<S.mi?'✅':i===S.mi?'👉':'🔒'}</span><div><b>${i<=S.mi?esc(m.title):'？？？'}</b>　<small>💎${m.reward}</small><br><small>${i<=S.mi?esc(m.desc):'前のミッションをクリアすると表示'}</small></div></li>`).join('')}</ul>`);}
@@ -1175,7 +1185,7 @@ document.getElementById('missionBtn').onclick=()=>openMissions();
 document.getElementById('mchip').onclick=()=>openMissions();
 document.getElementById('helpBtn').onclick=openHelp;
 document.getElementById('sndBtn').onclick=()=>{audioInit();setSound(!SND.on);};
-addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCard();if(PLACE)document.getElementById('placeCancel').click();}if(!S.started||e.target.tagName==='INPUT')return;if(e.key==='1')setLight(0);if(e.key==='2')setLight(0.5);if(e.key==='3')setLight(1);});
+addEventListener('keydown',e=>{if(ZCUR&&!modal.classList.contains('hidden')&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){zukanStep(e.key==='ArrowLeft'?-1:1);return;}if(e.key==='Escape'){closeModal();closeCard();if(PLACE)document.getElementById('placeCancel').click();}if(!S.started||e.target.tagName==='INPUT')return;if(e.key==='1')setLight(0);if(e.key==='2')setLight(0.5);if(e.key==='3')setLight(1);});
 addEventListener('visibilitychange',()=>{if(document.hidden)save();});
 let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,150);});
 
