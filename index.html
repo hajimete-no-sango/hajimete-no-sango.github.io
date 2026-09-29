@@ -2,6 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a82c0">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="サンゴ水槽">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>はじめてのサンゴ水槽 ～My First Reef～</title>
 <style>
@@ -45,7 +51,9 @@ body.night button.tb.on{background:linear-gradient(#5a4dd8,#3a2fb0)}
 .lightwrap{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--sub);gap:2px}
 /* mascot */
 #mascot{position:fixed;left:12px;bottom:96px;display:flex;align-items:flex-end;gap:4px;pointer-events:none;z-index:5}
-#nemo{width:86px;height:66px;pointer-events:auto;cursor:pointer;animation:bob 3.2s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+#mascot.quiz #nemo{animation:bob 1.2s ease-in-out infinite}
+#mascot.quiz:after{content:'❓';position:absolute;left:62px;top:-6px;font-size:20px;animation:blink 1s infinite;pointer-events:none}
+#nemo{;height:66px;pointer-events:auto;cursor:pointer;animation:bob 3.2s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
 #bubble{pointer-events:auto;max-width:min(440px,68vw);padding:12px 16px 12px 14px;font-size:14px;line-height:1.7;margin-bottom:30px;position:relative;cursor:pointer}
 #bubble:before{content:"";position:absolute;left:-9px;bottom:14px;border:9px solid transparent;border-right-color:rgba(255,255,255,.82);border-left:0}
@@ -159,7 +167,7 @@ body.titling #hud,body.titling #mchip,body.titling #bar,body.titling #mascot,bod
 
 <div id="hud">
   <div id="hudL" class="panel">
-    <span>Day <b id="hDay">1</b></span><span id="hTime">9:00</span><span id="hMoon" title="月の満ち欠け（満月の夜に何かが起きる…）">🌑</span><span class="cp">💎 <b id="hCp">40</b></span>
+    <span>Day <b id="hDay">1</b></span><span id="hTime">9:00</span><span id="hSeason" title="季節">🌸</span><span id="hMoon" title="月の満ち欠け（満月の夜に何かが起きる…）">🌑</span><span class="cp">💎 <b id="hCp">40</b></span>
   </div>
   <div id="hudR" class="panel">
     <div class="g"><label>水のきれいさ</label><div class="gbar"><i id="gQ"></i></div></div>
@@ -343,6 +351,7 @@ const FISH={
 const CREW={
  snail:{name:'シッタカ貝',price:20,eat:5,desc:'ガラスや岩のコケを食べてくれる巻貝。サンゴ水槽のお掃除係の定番。'},
  hermit:{name:'ヤドカリ',price:25,eat:3,desc:'砂の上の食べ残しやコケを食べてくれる。成長すると大きい貝殻に引っ越す。'},
+ shrimp:{name:'ペパーミントシュリンプ',price:60,eat:0,desc:'サンゴを弱らせる「セイタカイソギンチャク」を食べてくれるエビ。'},
 };
 const CREW_CAP=[4,6,8,10];
 const CX=600; // 水槽の中心（論理座標）
@@ -358,14 +367,17 @@ const EQ={
  skimmer:[{name:'なし',price:0},{name:'プロテインスキマー',price:150,desc:'細かい泡に汚れ（有機物）をくっつけて取り除く、海水水槽の定番機材。水が汚れにくくなる。'}],
  cooler:[{name:'なし',price:0},{name:'水槽用クーラー',price:180,desc:'夏の水温上昇を防ぐ。サンゴは高水温が大の苦手。'}],
  ato:[{name:'なし',price:0},{name:'自動給水器',price:160,desc:'蒸発した分の真水を自動で足してくれる。塩分（比重）が安定する。'}],
+ heater:[{name:'なし',price:0},{name:'ヒーター',price:80,desc:'冬の水温低下を防ぐ。サンゴは寒さも苦手。'}],
+ backup:[{name:'なし',price:0},{name:'停電用バッテリー',price:90,desc:'停電しても水流ポンプを動かし続けられる。水が止まるとサンゴは弱ってしまう。'}],
 };
-const EQ_META={tank:['🐠','水槽の大きさ'],led:['💡','照明'],pump:['🌊','水流'],skimmer:['🫧','ろ過'],cooler:['❄️','水温'],ato:['🚰','給水']};
+const EQ_META={tank:['🐠','水槽の大きさ'],led:['💡','照明'],pump:['🌊','水流'],skimmer:['🫧','ろ過'],cooler:['❄️','クーラー'],heater:['🔥','ヒーター'],ato:['🚰','給水'],backup:['🔋','停電対策']};
 const hasSp=id=>s=>s.corals.some(c=>c.sp===id);
 const MISSIONS=[
- {title:'最初のサンゴを迎えよう',desc:'🛒ショップで「マメスナギンチャク」を選んで、岩の上に置いてみよう。',done:s=>s.corals.length>=1,reward:30,after:'やったね！マメスナは丈夫で育てやすい、はじめての1株にぴったりのサンゴだよ。'},
+ {title:'最初のサンゴを迎えよう',desc:'診断でもらったサンゴ（またはショップで選んだサンゴ）を、岩の上に置いてみよう。',done:s=>s.corals.length>=1,reward:30,after:'やったね！ はじめての1株だ。タップすると、その子の好きな環境が分かるよ。'},
  {title:'サンゴを観察しよう',desc:'置いたサンゴをタップしてみよう。',done:s=>s.flags.tapped,reward:15,after:'触るとキュッと縮んだでしょ？ 本物のサンゴもとてもデリケート。水槽に手を入れてベタベタ触るのはNGだよ。'},
  {title:'照明を青くしてみよう',desc:'下の🌙ボタンで照明を青に。サンゴの色の変化をじっくり見てね。',done:()=>L.m>0.95,reward:25,after:'きれいでしょ？ サンゴの多くは「蛍光タンパク質」を持っていて、青い光を受けると光って見えるんだ。この瞬間が見たくてサンゴ水槽を始める人も多いんだよ。'},
  {title:'水槽の写真を撮ろう',desc:'📷ボタンで今の水槽を画像として保存できるよ。白でも青でも、好きな光で撮ってみよう。',done:s=>s.flags.photo,reward:15,after:'いい1枚！ 青い光の写真は、アクアリストの自慢の1枚になりがち。'},
+ {title:'クイズに答えよう',desc:'クマノミ先生（左下）に「❓」が出ていたらタップ！ 1日1問クイズが出るよ。',done:s=>s.quizIdx>0,reward:15,after:'クイズは毎日（ゲームの1日ごとに）出るよ。正解すると💎がもらえる。'},
  {title:'2種類目のサンゴ',desc:'ツツウミヅタかディスクコーラルを迎えよう。ディスクは暗めの下の方が好きだよ。',done:s=>new Set(s.corals.map(c=>c.sp)).size>=2,reward:30,after:'サンゴは種類ごとに「好きな光の強さ」がちがう。置く前に出る緑の帯（おすすめゾーン）を参考にしてね。'},
  {title:'魚にエサをあげよう',desc:'🍤ボタンでエサをあげてみよう。食べ残しは水を汚すから、あげすぎ注意！',done:s=>s.flags.fed,reward:20,after:'もぐもぐ！ LPS（大きなポリプのサンゴ）もエサを食べて育つよ。'},
  {title:'水換えをしよう',desc:'「水のきれいさ」は毎日少しずつ下がっていく。🔄ボタンで水換えしよう。',done:s=>s.flags.wc,reward:30,after:'水換えは「少しずつ・定期的に」が基本。一度に全部変えるとサンゴがびっくりしちゃうんだ。'},
@@ -376,6 +388,7 @@ const MISSIONS=[
  {title:'ウェーブポンプを入れよう',desc:'🛒ショップの「機材」でウェーブポンプを。水流が強いとサンゴがよく揺れて元気になるよ。',done:s=>s.eq.pump>=1,reward:40,after:'サンゴは動けないから、水流がエサや酸素を運んでくれるんだ。'},
  {title:'水槽を大きくしよう',desc:'🛒ショップの「機材」で60cm水槽に。置けるサンゴと魚が増えるよ。',done:s=>s.eq.tank>=1,reward:50,after:'水の量が多いほど、水質や水温が急に変わりにくくなる。「大きい水槽の方がかえって飼いやすい」と言われるのはこのためなんだ。'},
  {title:'株分けに挑戦',desc:'大きく育ったサンゴ（成長100%）をタップして「株分け」してみよう。',done:s=>s.flags.frag,reward:50,after:'株分け（フラグ）はサンゴ趣味の醍醐味。切った株を仲間と交換したりもするんだよ。'},
+ {title:'依頼にこたえよう',desc:'アクアリストから依頼が届いたら、育ちきった株をタップして譲ってあげよう（依頼は🎯の「依頼」タブ）。',done:s=>(s.flags.trades||0)>=1,reward:50,after:'お礼をもらえたね！ 株分けして仲間に分けるのは、本物のサンゴ趣味でも楽しいところなんだ。'},
  {title:'仲間の魚を増やそう',desc:'🛒ショップの「魚」で新しい魚を迎えよう。',done:s=>s.fish.length>=3,reward:30,after:'にぎやかになったね！ 魚を増やすと水も汚れやすくなるから、水換えも忘れずに。'},
  {title:'魚に名前をつけよう',desc:'魚をタップして、名前をつけてみよう。',done:s=>s.fish.some(f=>f.name),reward:20,after:'名前があると、ぐっと愛着がわくよね。魚はエサをもらうと少しずつ大きくなるよ。'},
  {title:'照明をパワーアップ',desc:'「リーフ用LED」を導入しよう。SPSには強い光が必要なんだ。',done:s=>s.eq.led>=1,reward:60,after:'光が強くなると、弱い光が好きなディスクには強すぎることも。様子を見て下の方へ動かしてあげて。'},
@@ -389,10 +402,10 @@ const MISSIONS=[
 
 /* ============================ 状態・保存 ============================ */
 const SAVE_KEY='reef_beginner_v1';
-const DEF=()=>({v:1,started:false,day:1,time:9,cp:40,q:92,sal:1.024,temp:25.5,heat:0,fedT:0,eq:{tank:0,pump:0,led:0,skimmer:0,cooler:0,ato:0},corals:[],fish:[{id:1,sp:'clown',g:0.5},{id:2,sp:'clown',g:0.5}],nextFid:3,crew:{snail:0,hermit:0},algae:5,mi:0,flags:{},zukan:{},fishZ:{clown:true},nextId:1,frags:0,lost:[]});
+const DEF=()=>({v:1,started:false,day:1,time:9,cp:40,q:92,sal:1.024,temp:25.5,heat:0,fedT:0,eq:{tank:0,pump:0,led:0,skimmer:0,cooler:0,ato:0,heater:0,backup:0},corals:[],fish:[{id:1,sp:'clown',g:0.5},{id:2,sp:'clown',g:0.5}],nextFid:3,crew:{snail:0,hermit:0,shrimp:0},pests:[],req:[],reqN:1,algae:5,mi:0,flags:{},zukan:{},fishZ:{clown:true},nextId:1,frags:0,lost:[]});
 let DEMO=Q.has('demo');const VIEWH=location.hash.startsWith('#v=')?location.hash.slice(3):null;let VIEW=false;
-function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&s.v===1){const d=DEF();const eq=Object.assign(d.eq,s.eq||{});if(!s.eq||s.eq.tank===undefined)eq.tank=2;const o=Object.assign(d,s,{eq,crew:Object.assign({snail:0,hermit:0},s.crew||{}),flags:s.flags||{},zukan:s.zukan||{},lost:s.lost||[]});o.fish=o.fish.map(f=>Object.assign({id:o.nextFid++,g:0.8},f));return o;}}catch(e){}return null;}
-function save(){if(DEMO||VIEW)return;try{const o=Object.assign({},S,{corals:S.corals.map(({_geo,_ev,ret,...c})=>c)});localStorage.setItem(SAVE_KEY,JSON.stringify(o));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&s.v===1){const d=DEF();const eq=Object.assign(d.eq,s.eq||{});if(!s.eq||s.eq.tank===undefined)eq.tank=2;const o=Object.assign(d,s,{eq,crew:Object.assign({snail:0,hermit:0,shrimp:0},s.crew||{}),pests:s.pests||[],req:s.req||[],flags:s.flags||{},zukan:s.zukan||{},lost:s.lost||[]});o.fish=o.fish.map(f=>Object.assign({id:o.nextFid++,g:0.8},f));return o;}}catch(e){}return null;}
+function save(){if(DEMO||VIEW)return;try{if(S.started)S.lastSeen=Date.now();const o=Object.assign({},S,{corals:S.corals.map(({_geo,_ev,ret,...c})=>c)});localStorage.setItem(SAVE_KEY,JSON.stringify(o));}catch(e){}}
 let S=load()||DEF();
 
 /* ============================ キャンバス ============================ */
@@ -499,7 +512,7 @@ function palOf(c){const mo=CORALS[c.sp].morphs[c.morph];if(c.dead){const dc=dead
  const rh=mo.rare&&!bl?Math.round(95*Math.sin(NOW*0.9+(c.seed%97))/10)*10:0; // レア：色が虹のように移ろう
  for(const key in mo.pal){const e=mo.pal[key];let d=hx(e[0]);if(bl)d=mixc(d,PALE,bl);let col=lit(d);if(e[1]){let f=hx(e[1]);if(bl)f=mixc(f,PALE_F,bl);col=mixc(col,f,k);P[key+'_g']=rh?hueShift(hx(e[1]),rh,1.3):hx(e[1]);if(rh)col=hueShift(col,rh,1.3);}P[key]=rgba(col);P._a[key]=col;}
  return P;}
-let NOW=0;
+let NOW=0,NIGHTF=0;
 function hueShift(c,deg,sat=1){let r=c[0]/255,g=c[1]/255,b=c[2]/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h=0,sl=0;const l=(mx+mn)/2;
  if(mx!==mn){const d=mx-mn;sl=l>0.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h/=6;}
  h=(h+deg/360+1)%1;sl=Math.min(1,sl*sat);const q=l<0.5?l*(1+sl):l+sl-l*sl,p2=2*l-q;const f=t=>{t=(t+1)%1;return t<1/6?p2+(q-p2)*6*t:t<1/2?q:t<2/3?p2+(q-p2)*(2/3-t)*6:p2;};
@@ -573,6 +586,7 @@ R.brain=(c,P,t,G)=>{const open=0.8+0.2*(1-c.ret);const br=1+0.04*Math.sin(t*0.9+
  ctx.strokeStyle=P.rim;ctx.lineWidth=4.2;ctx.beginPath();capPath(0,cy,rx*0.96,ry*0.94,G.w);ctx.stroke();
  ctx.strokeStyle=P.groove;ctx.lineWidth=2.3;ctx.globalAlpha=0.75;ctx.beginPath();for(let k=0;k<=24;k++){const u=k/24;const x=lerp(-rx*0.58,rx*0.58,u),y=cy+Math.sin(u*TAU*1.5+G.ph)*ry*0.22;k?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
  ctx.beginPath();ep(0,cy,rx*0.7,ry*0.62);ctx.stroke();ctx.globalAlpha=1;
+ if(NIGHTF>0.05&&!c.dead){ctx.strokeStyle=P.rim;ctx.lineWidth=1.3;ctx.globalAlpha=NIGHTF;ctx.beginPath();for(let k=0;k<22;k++){const a=Math.PI*(1.05+k/21*0.9);const bx=Math.cos(a)*rx*0.95,by=cy+Math.sin(a)*ry*0.9;const L2=(8+4*Math.sin(k*1.7))*NIGHTF;ctx.moveTo(bx,by);ctx.lineTo(bx+Math.cos(a)*L2+Math.sin(t*2+k)*1.5,by+Math.sin(a)*L2-3*NIGHTF);}ctx.stroke();ctx.globalAlpha=1;}
  gloss(-rx*0.3,cy-ry*0.45,rx*0.36,ry*0.2,P,0.4);gloss(rx*0.25,cy-ry*0.2,rx*0.1,ry*0.08,P,0.35);
  if(P._fa>0.02)additive(()=>{glow(0,cy,rx*1.3,ry*1.5,P.flesh_g,P._fa*0.35);for(let k=0;k<16;k++){const a=k/16*TAU;glow(Math.cos(a)*rx*0.96,cy+Math.sin(a)*ry*0.94,10,8,P.rim_g,P._fa*0.55);}});};
 
@@ -648,6 +662,7 @@ R.favia=(c,P,t,G)=>{const open=0.85+0.15*(1-c.ret);ctx.fillStyle=P.dome;ctx.begi
  ctx.fillStyle=P.cell;ctx.beginPath();for(const e of G.cells)ep(e.x*open,e.y,e.s*1.05,e.s*0.72);ctx.fill();
  ctx.strokeStyle=P.rim;ctx.lineWidth=1.6;ctx.beginPath();for(const e of G.cells)ep(e.x*open,e.y,e.s*1.05,e.s*0.72);ctx.stroke();
  ctx.fillStyle=P.eye;ctx.beginPath();for(const e of G.cells)ep(e.x*open,e.y,e.s*0.3,e.s*0.22);ctx.fill();
+ if(NIGHTF>0.05&&!c.dead){ctx.strokeStyle=P.rim;ctx.lineWidth=0.9;ctx.globalAlpha=NIGHTF;ctx.beginPath();for(let i=0;i<G.cells.length;i+=2){const e=G.cells[i];for(let k=0;k<5;k++){const a=k/5*TAU+i;ctx.moveTo(e.x*open,e.y);ctx.lineTo(e.x*open+Math.cos(a)*4.5*NIGHTF,e.y+Math.sin(a)*3*NIGHTF-2*NIGHTF);}}ctx.stroke();ctx.globalAlpha=1;}
  gloss(-11,-25,13,5,P,0.35);
  if(P._fa>0.02)additive(()=>{for(let i=0;i<G.cells.length;i+=2){const e=G.cells[i];glow(e.x*open,e.y,6,5,P.rim_g,P._fa*0.55);}});};
 
@@ -736,6 +751,7 @@ function drawFish(f,t){const sp=FISH[f.sp];const s=fishScale(f)*(1+f.happy*0.05)
  ctx.fillStyle=lc('#ffffff');ctx.globalAlpha=0.35;ctx.beginPath();ctx.ellipse(2,h*0.35,4,2,0.4+Math.sin(t*9+f.ph)*0.3,0,TAU);ctx.fill();ctx.globalAlpha=1;
  eye(ex,ey,er,f.blink,f.happy);
  ctx.fillStyle=rgba(lit(hx('#ff8fab')),0.55);ctx.beginPath();ctx.ellipse(ex-2,ey+er+2,2.6,1.4,0,0,TAU);ctx.fill();
+ if(f.ref&&f.ref.ich)drawIch();
  ctx.restore();}
 
 /* ============================ 背景・水・光 ============================ */
@@ -832,28 +848,54 @@ function makeAlgaeTex(){const S2=256,c=document.createElement('canvas');c.width=
 function drawAlgaeRock(){const a=S.algae/100*0.4*L.b;if(a<0.02)return;ctx.save();ctx.clip(SURF);ctx.fillStyle=rgba(lit([90,120,45]),a);ctx.fillRect(tx0(),100,2*tankHW(),H);ctx.restore();}
 function drawAlgaeGlass(){const a=Math.max(0,S.algae-15)/85*0.6*(0.5+0.5*L.b);if(a<0.02||!ALG)return;ctx.save();ctx.globalAlpha=a*(1-0.4*L.m);ctx.fillStyle=ALG;ctx.fillRect(CX-CAM.hw,20,2*CAM.hw,H-20);ctx.restore();}
 function crewEat(){let e=0;for(const k in CREW)e+=(S.crew[k]||0)*CREW[k].eat;e+=S.fish.filter(f=>f.sp==='yellowtang').length*6+S.fish.filter(f=>f.sp==='blenny').length*7;return e;}
+/* ============================ 害虫（セイタカイソギンチャク）と魚の病気 ============================ */
+function randomRockSpot(){for(let i=0;i<30;i++){const x=tx0()+60+Math.random()*(2*tankHW()-120);const y=surfaceY(x)+20+Math.random()*60;if(onRock(x,y)&&y<sandTop(x)-5&&S.corals.every(c=>Math.hypot(c.x-x,c.y-y)>35))return{x,y};}return null;}
+function spawnPests(){if(!S.corals.length||S.day<3)return;
+ const shrimp=S.crew.shrimp||0;for(let i=0;i<shrimp&&S.pests.length;i++)S.pests.splice((Math.random()*S.pests.length)|0,1);
+ const grow=[];for(const p of S.pests)if(Math.random()<0.4&&S.pests.length+grow.length<8){const x=p.x+(Math.random()-0.5)*70,y=p.y+(Math.random()-0.5)*30;if(onRock(x,y))grow.push({id:S.reqN++,x,y});}
+ S.pests.push(...grow);
+ if(!S.pests.length&&Math.random()<(S.q<70||S.algae>40?0.35:0.15)){const sp=randomRockSpot();if(sp){S.pests.push({id:S.reqN++,...sp});if(!S.flags.pestTip){S.flags.pestTip=true;say('あれ？ 岩に茶色い小さなイソギンチャクが…！ それは「セイタカイソギンチャク」。増えると周りのサンゴを刺して弱らせる、サンゴ水槽の困りものなんだ。タップして取り除こう。');}}}}
+function drawPest(p,t){ctx.save();ctx.translate(p.x,p.y);ctx.scale(1.9,1.9);const col=lc('#a08a60'),tc=rgba(mixc(lit(hx('#c8b080')),[150,255,190],L.m*0.6),0.9);
+ ctx.strokeStyle=col;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.sin(t+p.id)*1.5,-9);ctx.stroke();
+ ctx.strokeStyle=tc;ctx.lineWidth=1.1;ctx.beginPath();for(let k=0;k<12;k++){const a=-Math.PI*0.95+k/11*Math.PI*0.9;const sw=Math.sin(t*1.5+k+p.id)*1.5;ctx.moveTo(0,-9);ctx.quadraticCurveTo(Math.cos(a)*5,-9+Math.sin(a)*5,Math.cos(a)*9+sw,-9+Math.sin(a)*8);}ctx.stroke();
+ ctx.fillStyle=col;ctx.beginPath();ep(0,-9,2.6,1.6);ctx.fill();ctx.restore();}
+function hitPest(p){return S.pests.find(q=>Math.hypot(q.x-p.x,q.y-15-p.y)<24);}
+function fishDisease(){if(!S.fish.length)return;const risk=(S.q<55?0.25:0.06)+(S.heat>0||S.outage>0?0.1:0);
+ if(Math.random()<risk){const cand=S.fish.filter(f=>!f.ich);if(!cand.length)return;const f=cand.find(f=>f.sp==='bluetang'&&Math.random()<0.6)||cand[(Math.random()*cand.length)|0];f.ich=3;
+  say(`${f.name||FISH[f.sp].name}の体に白い点が…！ それは「白点病」。水質が悪いときや、水温が急に変わったときにかかりやすいんだ。タップして治療してあげて。`);}}
+function drawIch(){ctx.fillStyle='rgba(255,255,255,0.98)';ctx.strokeStyle='rgba(60,60,80,0.5)';ctx.lineWidth=0.4;ctx.beginPath();for(const[x,y]of[[6,-4],[0,2],[-5,-3],[3,5],[-8,1],[9,1],[-2,-6],[2,-1],[-4,4]])ep(x,y,1.4,1.4);ctx.fill();ctx.stroke();}
+/* ============================ ③ アクアリストからの依頼 ============================ */
+const NPCS=['うみのさん','サンゴ好きのミナミさん','リーフ部の健太さん','アクア女子のゆいさん','ベテランの岩田さん','はじめたばかりの陽太くん'];
+function newRequest(){if(VIEW||S.req.length>=2||Math.random()>0.6)return;const ok=CORAL_IDS.filter(id=>!CORALS[id].nofrag&&(S.zukan[id]||[]).length);if(!ok.length)return;
+ const sp=ok[(Math.random()*ok.length)|0];const ms=S.zukan[sp];const morph=Math.random()<0.5?-1:ms[(Math.random()*ms.length)|0];
+ const r={id:S.reqN++,npc:NPCS[(Math.random()*NPCS.length)|0],sp,morph,reward:Math.round(CORALS[sp].price*0.9+40)+(morph>=0?30:0),gift:Math.random()<0.3,until:S.day+5};
+ S.req.push(r);toast(`📮 ${r.npc}から依頼が届いたよ！`);say(`📮 ${r.npc}から依頼：「${CORALS[sp].name}${morph>=0?`（${CORALS[sp].morphs[morph].name}）`:''}を株分けしてほしいな」\n育ちきった株をタップして、譲ってあげよう。依頼は🎯ミッションの「依頼」タブで見られるよ。`);}
+function matchReq(c){return S.req.filter(r=>r.sp===c.sp&&(r.morph<0||r.morph===c.morph));}
+function pickMorph(sp,rareBoost){const ms=CORALS[sp].morphs;if(rareBoost&&Math.random()<0.3){const i=ms.findIndex(m=>m.rare);if(i>=0)return i;}const tot=ms.reduce((a,m)=>a+m.w,0);let r=Math.random()*tot,i=0;for(;i<ms.length-1;i++){r-=ms[i].w;if(r<0)break;}return i;}
 /* ============================ サンゴの健康（学びの中心） ============================ */
 const eqv=(k)=>EQ[k][S.eq[k]];
 const algaeShade=()=>1-Math.max(0,(S.algae||0)-30)/150;
 const lightAt=y=>clamp(1.05-(y-120)/560*0.72,0.28,1.05)*eqv('led').power*algaeShade();
 const yForLight=v=>120+(1.05-v/(eqv('led').power*algaeShade()))/0.72*560;
 const fitR=(v,[a,b],lo,hi)=>v<a?clamp(1-(a-v)/lo,0,1):v>b?clamp(1-(v-b)/hi,0,1):1;
-function evalCoral(c,x=c.x,y=c.y,sand=c.sand){const sp=CORALS[c.sp];const lv=lightAt(y),fv=eqv('pump').flow;const f={};
+function evalCoral(c,x=c.x,y=c.y,sand=c.sand){const sp=CORALS[c.sp];const lv=lightAt(y),fv=flowNow();const f={};
  f.light=fitR(lv,sp.light,0.22,0.3);f.flow=fitR(fv,sp.flow,0.25,0.35);
  const qmin=25+sp.diff*10;f.water=S.q>=qmin?1:clamp(1-(qmin-S.q)/25,0,1);
  const tol=0.0045-sp.diff*0.0005,dev=Math.abs(S.sal-1.024);f.salt=dev<=tol?1:clamp(1-(dev-tol)/0.003,0,1);
- f.temp=clamp(1-Math.max(0,S.temp-26.8)/(3.4-sp.diff*0.35),0,1);
+ f.temp=clamp(1-Math.max(0,S.temp-26.8)/(3.4-sp.diff*0.35),0,1)*clamp(1-Math.max(0,24-S.temp)/(3.6-sp.diff*0.35),0,1);
  f.place=sp.sand&&!sand?0.75:1;f.neighbor=1;let stung=false,near=false;
  for(const o of S.corals){if(o===c||o.dead)continue;const d=Math.hypot(o.x-x,o.y-y);if(d<80){if(o.sp==='torch'){f.neighbor=Math.min(f.neighbor,0.7);stung=true;}if(sp.aggressive)near=true;}}
- let tg=1;for(const k in f)tg*=f[k];return{f,lv,fv,qmin,tg:Math.max(0.03,tg),stung,near};}
+ let pest=false;for(const q of S.pests||[])if(Math.hypot(q.x-x,q.y-y)<75){f.neighbor=Math.min(f.neighbor,0.75);pest=true;}
+ let tg=1;for(const k in f)tg*=f[k];return{f,lv,fv,qmin,tg:Math.max(0.03,tg),stung,near,pest};}
 function condList(c,ev){const sp=CORALS[c.sp];const o=[];const mk=v=>v>=0.999?'o':v>0.5?'t':'x';
  const lt=ev.lv<sp.light[0]?'光が足りないみたい。もっと上に置くか、照明を強くしよう。':ev.lv>sp.light[1]?'光が強すぎるみたい。もう少し下へ移動してあげよう。':'光の強さはちょうどいい！';
  o.push(['☀️ 光',mk(ev.f.light),lt+(S.algae>45?'（コケで光がさえぎられている！ 🧽コケ取りを）':'')]);
  o.push(['🌊 水流',mk(ev.f.flow),ev.fv<sp.flow[0]?'水流が弱い。ウェーブポンプを入れよう。':ev.fv>sp.flow[1]?'水流が強すぎてポリプが開きにくい。':'水流はちょうどいい！']);
  o.push(['💧 水のきれいさ',mk(ev.f.water),S.q<ev.qmin?'水が汚れてきた。水換えをしよう。':'きれいな水で快適。']);
  o.push(['🧂 塩分',mk(ev.f.salt),S.sal>1.0245?'塩分が濃くなってきた。足し水（真水）をしよう。':'塩分はちょうどいい。']);
- o.push(['🌡 水温',mk(ev.f.temp),S.temp>26.8?'水温が高い！ クーラーがあると安心。':'水温は快適。']);
+ o.push(['🌡 水温',mk(ev.f.temp),S.temp>26.8?'水温が高い！ クーラーがあると安心。':S.temp<24?'水温が低い！ 冬はヒーターが必要。':'水温は快適。']);
  if(sp.sand)o.push(['🏖 置き場所',mk(ev.f.place),c.sand?'砂の上でごきげん。':'この子は砂の上が好き。砂地へ移動しよう。']);
+ if(ev.pest)o.push(['🪸 害虫',mk(0.75),'セイタカイソギンチャクに刺されている！ タップして取り除こう。']);
  if(ev.stung)o.push(['⚡ となり',mk(ev.f.neighbor),'トーチコーラルの触手が届いている！ 少し離してあげよう。']);
  if(ev.near)o.push(['⚡ となり','t','近くのサンゴを触手で刺してしまうかも。間をあけよう。']);
  return o;}
@@ -862,18 +904,23 @@ const mood=h=>h>0.8?'😊 ごきげん':h>0.55?'🙂 まあまあ':h>0.3?'😟 �
 /* ============================ シミュレーション ============================ */
 const HPS=24/180; // 現実の3分＝ゲームの1日
 const MOONS=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
+const SEASONS=[['🌸','春'],['☀️','夏'],['🍁','秋'],['❄️','冬']];
+const seasonIdx=()=>Math.floor(((S.day-1)%12)/3); // ゲームでは3日ごとに季節が変わる
+const flowNow=()=>S.outage>0&&!S.eq.backup?0.05:eqv('pump').flow;
 const moonIdx=()=>Math.round(((S.day-1)%14)/14*8)%8; // ゲームでは14日で満ち欠け（Day 8が満月）
 const SPAWNERS=['acropora','sugi','montipora','favia','goniopora'];
 let SPAWN=null;
 let warnT=0,glintT=0,dangerT=0;
 function simulate(dt,t){if(!S.started||VIEW)return;const dh=dt*HPS;
  S.time+=dh;if(S.time>=24){S.time-=24;S.day++;newDay();}
- const TKi=TANKS[S.eq.tank];S.q=clamp(S.q-dh/24*(8*(S.eq.skimmer?0.55:1)+S.corals.length*0.35+S.fish.length*1.1)*TKi.stab,0,100);
- if(!S.eq.ato)S.sal=Math.min(1.034,S.sal+dh/24*0.0014);else S.sal+=(1.024-S.sal)*Math.min(1,dh*0.5);
- if(S.heat>0)S.heat-=dh/24;const tt=25.5+(S.heat>0?(S.eq.cooler?0.4:3.6*TKi.stab):0);S.temp+=(tt-S.temp)*(1-Math.exp(-dh/5));
+ const TKi=TANKS[S.eq.tank];S.q=clamp(S.q-dh/24*(8*(S.eq.skimmer&&!(S.outage>0&&!S.eq.backup)?0.55:1)+S.corals.length*0.35+S.fish.length*1.1)*TKi.stab,0,100);
+ if(!S.eq.ato)S.sal=Math.min(1.034,S.sal+dh/24*0.0014*(seasonIdx()===1?1.5:1));else S.sal+=(1.024-S.sal)*Math.min(1,dh*0.5);
+ if(S.heat>0)S.heat-=dh/24;const tt=25.5+(S.heat>0?(S.eq.cooler?0.4:3.6*TKi.stab):0)-(seasonIdx()===3&&!S.eq.heater?3*TKi.stab:0);
+ if(S.outage>0){S.outage-=dh;if(S.outage<=0){S.outage=0;if(!L.cycle)L.tb=1;say('停電が直ったよ。ポンプと照明が戻った！');}}S.temp+=(tt-S.temp)*(1-Math.exp(-dh/5));
  if(S.fedT>0)S.fedT-=dh;
+ S.req=(S.req||[]).filter(r=>r.until>=S.day);
  S.algae=clamp(S.algae+dh/24*(5+eqv('led').power*8+(100-S.q)*0.12-crewEat())*TKi.stab,0,100);
- for(const f of S.fish)growFish(f,dh/24*(S.fedT>0?0.08:0.02));
+ for(const f of S.fish.slice()){growFish(f,dh/24*(S.fedT>0?0.08:0.02));if(f.ich){f.ich-=dh/24;if(f.ich<=0){S.fish=S.fish.filter(o=>o!==f);FISHES=FISHES.filter(o=>o.ref!==f);S.lostFish=(S.lostFish||0)+1;SFX.sad();toast(`🥀 ${f.name||FISH[f.sp].name}が白点病で死んでしまった…`);say('白点病は早めの治療が大切なんだ。次は白い点を見つけたら、すぐに治療してあげよう。');if(selFish===f.id)closeCard();}}}
  for(const c of S.corals.slice()){const sp=CORALS[c.sp];
   if(c.dead){if(isSoft(c)){c.melt=Math.min(1,(c.melt||0)+dt/5);if(Math.random()<dt*8)addPart({type:'bubble',x:c.x+(Math.random()-0.5)*30,y:c.y-10,vx:0,vy:-25,life:1.5,max:1.5,s:1.5+Math.random()*2,ph:Math.random()*TAU});if(c.melt>=1){S.corals=S.corals.filter(o=>o!==c);if(selId===c.id)closeCard();}}else S.q=Math.max(0,S.q-dh/24*2);continue;}
   const ev=evalCoral(c);c._ev=ev;
@@ -891,12 +938,67 @@ function simulate(dt,t){if(!S.started||VIEW)return;const dh=dt*HPS;
   if(w){say(w);warnT=t+40;}}}
 const DEATH_T=90; // 瀕死（健康15%未満）がこの秒数続くと死ぬ（ゲーム内で約半日）
 function causeOf(c,ev){const sp=CORALS[c.sp];let k='water',v=2;for(const key in ev.f){if(ev.f[key]<v){v=ev.f[key];k=key;}}
- return{light:ev.lv<sp.light[0]?'光が足りない':'光が強すぎる',flow:ev.fv<sp.flow[0]?'水流が弱すぎる':'水流が強すぎる',water:'水が汚れている（水換え不足）',salt:'塩分が濃すぎる（足し水不足）',temp:'水温が高すぎる',place:'置き場所が合っていない',neighbor:'トーチコーラルに刺されている'}[k];}
+ return{light:ev.lv<sp.light[0]?'光が足りない':'光が強すぎる',flow:ev.fv<sp.flow[0]?'水流が弱すぎる':'水流が強すぎる',water:'水が汚れている（水換え不足）',salt:'塩分が濃すぎる（足し水不足）',temp:S.temp<24?'水温が低すぎる':'水温が高すぎる',place:'置き場所が合っていない',neighbor:ev.pest?'セイタカイソギンチャクに刺されている':'トーチコーラルに刺されている'}[k];}
 function kill(c,ev){const sp=CORALS[c.sp];const cause=causeOf(c,ev);c.dead=true;c.h=0;c.deadDay=S.day;c.cause=cause;c.ret=1;c.melt=0;S.lost.push({sp:c.sp,morph:c.morph,day:S.day,cause});
  toast(`🥀 ${sp.name}が死んでしまった…`);SFX.sad();
  if(bq.length<2)say(isSoft(c)?`${sp.name}が死んでしまった…。原因は「${cause}」だったみたい。ソフトコーラルは骨格がないから、溶けるように消えてしまうんだ。次は同じことが起きないようにしてあげよう。`:`${sp.name}が死んでしまった…。原因は「${cause}」だったみたい。白い骨格だけが残ってる。死んだサンゴは水を汚すから、タップして「取り除く」をしよう。`);save();}
-function newDay(){if(moonIdx()===4&&S.corals.some(c=>!c.dead&&SPAWNERS.includes(c.sp)))say('今夜は満月🌕 夜8時ごろ、サンゴたちに何かが起きるかも…？');if(S.day>=4&&S.heat<=0&&Math.random()<0.25){S.heat=1.6;say('今日は暑い日！ 水温が上がりやすいよ。本物の水槽でも夏はクーラーが大活躍するんだ。');}save();}
+function newDay(){if(moonIdx()===4&&S.corals.some(c=>!c.dead&&SPAWNERS.includes(c.sp)))say('今夜は満月🌕 夜8時ごろ、サンゴたちに何かが起きるかも…？');const se=seasonIdx();if(S.day>1&&(S.day-1)%3===0)say(['春になったよ🌸 過ごしやすい季節。','夏が来た☀️ 暑い日は水温が上がりやすく、水の蒸発も早いよ。クーラーと足し水を忘れずに。','秋になったよ🍁 水温が安定しやすい季節。','冬が来た❄️ 水温が下がりやすいよ。ヒーターがないとサンゴが冷えてしまう。'][se]);
+ if(se===1&&S.heat<=0&&Math.random()<0.45){S.heat=1.2;say('今日は猛暑日！ 水温が上がりやすいよ。本物の水槽でも夏はクーラーが大活躍するんだ。');}
+ if(S.day>=3&&!S.outage&&Math.random()<0.08){if(S.eq.backup)toast('⚡ 停電！ でも停電用バッテリーのおかげでポンプは動いてる');else{S.outage=6;say('⚡ 停電！ ポンプと照明が止まっちゃった。水が動かないとサンゴは弱ってしまう。機材ショップの「停電用バッテリー」があると安心だよ。');}}
+ spawnPests();newRequest();fishDisease();
+ save();}
 
+/* ============================ 夜の生き物（クモヒトデ） ============================ */
+const BRIT=[0.18,0.52,0.83].map((u,i)=>({u,ph:i*2.1,off:0}));
+function drawNightLife(t){const a=NIGHTF;for(const b of BRIT){b.off+=0.05*Math.sin(t*0.2+b.ph);const x=tx0()+2*tankHW()*clamp(b.u+Math.sin(t*0.05+b.ph)*0.04,0.05,0.95),y=sandTop(x)+2;
+  ctx.save();ctx.translate(x,y);ctx.globalAlpha=a;ctx.strokeStyle=rgba(mixc(lit(hx('#d09080')),[255,160,140],L.m*0.3));ctx.lineWidth=2.2;ctx.lineCap='round';ctx.beginPath();
+  for(let k=0;k<5;k++){const ang=-Math.PI/2+k*TAU/5+Math.sin(t*0.7+b.ph)*0.2;ctx.moveTo(0,0);let px=0,py=0;for(let j=1;j<=6;j++){const aa=ang+Math.sin(t*2+j*0.8+k+b.ph)*0.35;px+=Math.cos(aa)*4;py+=Math.sin(aa)*1.8;ctx.lineTo(px,py);}}
+  ctx.stroke();ctx.fillStyle=lc('#a86a60');ctx.beginPath();ep(0,0,3.6,2.2);ctx.fill();ctx.restore();}
+ ctx.globalAlpha=1;if(a>0.9)S.flags.nightSeen=true;}
+/* ============================ クマノミ先生のクイズ（1日1問） ============================ */
+const QUIZ=[
+ ['サンゴは何の仲間？',['動物','植物','石'],'サンゴはクラゲやイソギンチャクと同じ「刺胞動物」の仲間。れっきとした動物なんだ。'],
+ ['サンゴの体の中で、光を使って栄養を作ってくれるのは？',['褐虫藻','ミジンコ','乳酸菌'],'褐虫藻（かっちゅうそう）は小さな藻の仲間。だからサンゴには光が大事なんだ。'],
+ ['水が蒸発して塩分が濃くなったら、足すのは？',['真水','海水','砂糖水'],'蒸発するのは水だけで、塩は残る。だから足すのは真水だよ。'],
+ ['サンゴが白くなってしまう現象を何という？',['白化','脱皮','冬眠'],'白化は、褐虫藻が抜けてしまった状態。原因を取り除けば戻ることもあるよ。'],
+ ['青い光でサンゴが光って見えるのはなぜ？',['蛍光タンパク質を持っているから','電気を出しているから','光を反射する鱗があるから'],'サンゴの多くは蛍光タンパク質を持っていて、青い光を受けると光って見えるんだ。'],
+ ['「SPS」の最初の「S」は何の略？',['Small（小さい）','Super（すごい）','Soft（やわらかい）'],'SPSは Small Polyp Stony coral。小さなポリプの、石のようなサンゴという意味だよ。'],
+ ['カクレクマノミが一緒に暮らす相手として有名なのは？',['イソギンチャク','ヒトデ','ウニ'],'イソギンチャクの触手の中で身を守っているんだ。'],
+ ['サンゴの一斉産卵が多く見られるのは？',['初夏の満月のころ','真冬の新月','毎朝'],'沖縄などでは、初夏の満月のころに一斉に産卵することで知られているよ。'],
+ ['水換えのコツは？',['少しずつ・定期的に','一度に全部','水換えはしない'],'一度に全部変えると、環境が急に変わってサンゴがびっくりしちゃうんだ。'],
+ ['サンゴは高い水温が？',['苦手','大好き','関係ない'],'水温が高い状態が続くと、白化の原因になるよ。'],
+ ['飼えなくなった魚はどうする？',['買ったお店に相談する','海に放す','川に放す'],'放すと、その場所の生き物のバランスを壊してしまう。絶対に放さないでね。'],
+ ['ハナガササンゴのポリプの触手は何本？',['24本','8本','100本'],'ハードコーラルの触手は、6の倍数になっているものが多いんだ。'],
+ ['ディスクコーラルが好きな場所は？',['暗めの下の方','いちばん上の強い光','水面の近く'],'ディスクコーラルは強い光が苦手。日陰がお気に入りなんだ。'],
+ ['死んでしまったサンゴの骨格は？',['早めに取り除く','そのまま飾っておく','砕いてエサにする'],'死んだサンゴは水を汚してしまうから、早めに取り除こう。'],
+ ['ウミアザミの特徴的な動きは？',['パクパク開いたり閉じたりする','くるくる回る','ジャンプする'],'この動きは「ポンピング」と呼ばれているよ。'],
+ ['セイタカイソギンチャクを食べてくれるエビは？',['ペパーミントシュリンプ','イセエビ','アマエビ'],'サンゴ水槽の困りものを食べてくれる、頼もしいエビなんだ。'],
+ ['魚の白点病の治療はどこでする？',['別の水槽（隔離水槽）','サンゴ水槽にそのまま薬を入れる','治療しない'],'サンゴ水槽に薬を入れると、サンゴやエビまで弱ってしまうことがあるんだ。'],
+ ['水槽が大きいほど？',['水質や水温が安定しやすい','水がすぐ汚れる','何も変わらない'],'水の量が多いと、変化がゆっくりになるんだ。'],
+ ['ソフトコーラルとハードコーラルの大きな違いは？',['硬い骨格があるかどうか','色','大きさ'],'ハードコーラルは石灰の硬い骨格を作る。ソフトコーラルは骨格がやわらかいんだ。'],
+ ['ガラスや岩のコケを食べてくれる貝は？',['シッタカ貝','アサリ','ホタテ'],'シッタカ貝はサンゴ水槽のお掃除係の定番だよ。'],
+];
+function quizReady(){return S.started&&!VIEW&&S.quizDay!==S.day;}
+function openQuiz(){const q=QUIZ[(S.quizIdx||0)%QUIZ.length];const order=[0,1,2].sort(()=>Math.random()-0.5);
+ openModal(`<h2>❓ クマノミ先生のクイズ</h2><p style="font-size:15px;margin:6px 0 14px;line-height:1.7"><b>Q.</b> ${q[0]}</p><div class="btns" style="flex-direction:column">${order.map(i=>`<button data-qz="${i}" style="text-align:left;font-size:14px;padding:12px 14px">${q[1][i]}</button>`).join('')}</div><div id="qzres"></div>`);}
+function answerQuiz(i){const q=QUIZ[(S.quizIdx||0)%QUIZ.length];if(S.quizDay===S.day)return;S.quizDay=S.day;S.quizIdx=(S.quizIdx||0)+1;const ok=i===0;
+ if(ok){S.cp+=20;S.flags.quizOk=(S.flags.quizOk||0)+1;SFX.fanfare();}else SFX.tap();
+ document.querySelectorAll('[data-qz]').forEach(b=>{b.disabled=true;if(+b.dataset.qz===0)b.classList.add('hot');});
+ document.getElementById('qzres').innerHTML=`<p style="margin-top:12px;font-size:14px;line-height:1.7"><b>${ok?'⭕ 正解！ 💎+20':'❌ ざんねん…'}</b><br>${q[2]}</p><p style="font-size:12px;color:var(--sub)">また明日（ゲームの次の日）に出題するね。</p>`;document.body.classList.remove('quiz');save();}
+/* ============================ あなたに合うサンゴ診断（はじめに1回） ============================ */
+const DIAG=[
+ ['どんな色が好き？',[['カラフルなのが好き',{zoa:2,mushroom:1}],['グリーン系が好き',{gsp:2,toadstool:1,finger:1}],['やさしいパステルカラー',{xenia:2,mushroom:1}]]],
+ ['どんな姿に見とれる？',[['風にそよぐように、ゆらゆら',{gsp:2,toadstool:1}],['パクパク動くのがかわいい',{xenia:3}],['お花や模様をじっくり眺めたい',{zoa:2,mushroom:2}],['にょきにょき育つ姿',{finger:2,toadstool:1}]]],
+ ['お世話にかけられる時間は？',[['ちょっとだけ',{zoa:1,gsp:1,mushroom:1,finger:1}],['ふつう',{toadstool:1,xenia:1}],['たっぷり',{toadstool:1,xenia:1}]]],
+];
+let DG=null;
+function diagStart(){DG={step:0,score:{}};diagRender();}
+function diagOffer(){openModal(`<h2>🪸 あなたに合うサンゴ診断</h2><p style="font-size:14px;line-height:1.8">かんたんな3つの質問で、あなたにぴったりのサンゴを選ぶよ。${S.flags.diagGift?'':'最初の1株として<b>プレゼント</b>つき！'}</p><p style="font-size:12.5px;color:var(--sub)">やらなくても大丈夫。🛒ショップで自分で選んでもOK。あとから「？（遊び方）」でもできるよ。</p><div class="btns"><button class="hot" data-dgo="1" style="font-size:15px;padding:10px 18px">🪸 診断してみる</button><button data-dgo="0">スキップする</button></div>`);}
+function diagRender(){const q=DIAG[DG.step];openModal(`<h2>🪸 あなたに合うサンゴ診断　<small style="font-size:12px;color:var(--sub)">${DG.step+1}/${DIAG.length}</small></h2><p style="font-size:15px;margin:6px 0 14px">${q[0]}</p><div class="btns" style="flex-direction:column">${q[1].map((o,i)=>`<button data-dg="${i}" style="text-align:left;font-size:14px;padding:12px 14px">${o[0]}</button>`).join('')}</div>`);}
+function diagAnswer(i){const o=DIAG[DG.step][1][i][1];for(const k in o)DG.score[k]=(DG.score[k]||0)+o[k];DG.step++;if(DG.step<DIAG.length){diagRender();return;}
+ const best=Object.keys(DG.score).sort((a,b)=>DG.score[b]-DG.score[a])[0];const d=CORALS[best];const morph=pickMorph(best,false);
+ openModal(`<h2>🎁 あなたにぴったりのサンゴは…</h2><div class="detail"><div><img src="${coralThumb(best,morph,400,250)}"></div><dl><dt>${d.name}</dt><dd style="font-size:15px;font-weight:700">${d.catch}</dd><dt>どんなサンゴ？</dt><dd>${d.desc}</dd><dt>ここが魅力</dt><dd>${d.charm}</dd><dt>育てるコツ</dt><dd>${d.tip}</dd></dl></div>${S.flags.diagGift?`<p style="margin-top:12px;font-size:14px">🛒ショップで<b>${d.name}</b>を探してみてね。</p>`:`<p style="margin-top:12px;font-size:14px">最初の1株として、<b>${d.name}</b>をプレゼント！ 岩の上に置いてあげよう。</p><div class="btns"><button class="hot" id="diagGo" style="font-size:15px;padding:10px 18px">🪸 置きに行く</button></div>`}`);
+ const go=document.getElementById('diagGo');if(go)go.onclick=()=>{S.flags.diagGift=true;closeModal();startPlace({sp:best,morph,seed:(Math.random()*1e9)|0,free:true});};}
 /* ============================ 称号 ============================ */
 const ACH=[
  {id:'first',icon:'🪸',name:'はじめの一株',desc:'サンゴを初めて迎えた',chk:s=>s.corals.length>0},
@@ -913,17 +1015,25 @@ const ACH=[
  {id:'nodeath',icon:'💚',name:'だれも死なせない',desc:'サンゴを1株も死なせずにDay 10をむかえた',chk:s=>s.day>=10&&!s.lost.length&&s.corals.length>0},
  {id:'spawn',icon:'🌕',name:'満月の奇跡',desc:'サンゴの産卵を見た',chk:s=>s.flags.spawn},
  {id:'big',icon:'🐋',name:'大きな海',desc:'120cm水槽にした',chk:s=>s.eq.tank>=3},
+ {id:'trade',icon:'📮',name:'たよれるアクアリスト',desc:'依頼に3回こたえた',chk:s=>(s.flags.trades||0)>=3},
+ {id:'quiz',icon:'🎓',name:'サンゴ博士',desc:'クイズに5問正解した',chk:s=>(s.flags.quizOk||0)>=5},
+ {id:'pest',icon:'🪸',name:'害虫ハンター',desc:'セイタカイソギンチャクを退治した',chk:s=>(s.flags.pestKill||0)>=1},
+ {id:'doctor',icon:'🩺',name:'魚のお医者さん',desc:'白点病を治した',chk:s=>s.flags.cured},
+ {id:'night',icon:'🌃',name:'夜の観察者',desc:'夜の生き物を見た',chk:s=>s.flags.nightSeen},
+ {id:'seasons',icon:'🗓',name:'四季をこえて',desc:'Day 13（1年）をむかえた',chk:s=>s.day>=13},
 ];
 let achT=0;
 function checkAch(){if(VIEW)return;S.ach=S.ach||{};for(const a of ACH){if(S.ach[a.id])continue;if(a.chk(S)){S.ach[a.id]=S.day;S.cp+=20;toast(`🏅 称号「${a.name}」を手に入れた！ 💎+20`);SFX.fanfare();sparkle(CX,140,12,[255,220,120]);}}}
 /* ============================ 描画ループ ============================ */
 let PLACE=null,ghost=null,selId=null,titleCorals=[],lastT=performance.now(),T0=performance.now();
 function visibleCorals(){return S.started||S.corals.length?S.corals:titleCorals;}
-function frame(now){const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=(now-T0)/1000;NOW=t;camUpdate(dt);
+function frame(now){const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=(now-T0)/1000;NOW=t;
+ {const h=S.time;NIGHTF=!S.started?0:h>=12?sstep(clamp((h-19.5)/1.5,0,1)):1-sstep(clamp((h-4.5)/1.5,0,1));if(NIGHTF>0.9&&!S.flags.nightTip&&S.started&&!VIEW){S.flags.nightTip=true;say('夜になると、昼は隠れている生き物が出てくるよ。岩のすき間のクモヒトデや、触手を伸ばしてエサを探すサンゴを探してみて。');}}camUpdate(dt);
  if(L.cycle&&S.started){const s=schedule(S.time);L.tm=s.m;L.tb=s.b;}
+ if(S.outage>0&&!S.eq.backup&&S.started&&!VIEW)L.tb=0.3;
  if(!S.started&&!S.corals.length){const ph=Math.floor(t/7)%2;L.tm=ph;}
  L.m=damp(L.m,L.tm,'vm',1.5,dt);L.b=damp(L.b,L.tb,'vb',1.5,dt);
- SW=0.5+eqv('pump').flow*1.2;
+ SW=0.5+flowNow()*1.2;
  const corals=visibleCorals();
  simulate(dt,t);updFish(dt,t,corals);if(S.started)updCrew(dt,t);
  for(const c of corals)if(!c.dead)c.ret=Math.max(0,(c.ret||0)-dt*0.25);
@@ -939,6 +1049,8 @@ function frame(now){const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=(
  const sorted=corals.slice().sort((a,b)=>a.y-b.y);for(const c of sorted)drawCoral(c,t);
  if(selId){const c=S.corals.find(c=>c.id===selId);if(c){const s=coralScale(c);ctx.strokeStyle=`rgba(255,255,255,${0.5+0.3*Math.sin(t*4)})`;ctx.setLineDash([6,6]);ctx.lineWidth=2;ctx.beginPath();ep(c.x,c.y+2,CORALS[c.sp].hr*s,12*s);ctx.stroke();ctx.setLineDash([]);}}
  if(PLACE&&ghost)drawGhost(t);
+ for(const p of S.pests)drawPest(p,t);
+ if(NIGHTF>0.02)drawNightLife(t);
  for(const c of CREWRT)if(c.type==='hermit')drawHermit(c,t);
  for(const f of FISHES)drawFish(f,t);
  drawParts(t);drawCaustics(t,false);drawAlgaeGlass();for(const c of CREWRT)if(c.type==='snail')drawSnail(c,t);drawTop(t);drawVignette();drawRoom();
@@ -970,6 +1082,7 @@ cv.addEventListener('pointermove',e=>{if(PLACE){if(e.pointerType==='mouse'||PD)s
  if(PD){if(!PD.moved&&Math.abs(e.clientX-PD.x)>8)PD.moved=true;if(PD.moved)CAM.x-=(e.clientX-PD.lx)/SC;PD.lx=e.clientX;}});
 cv.addEventListener('pointercancel',()=>{PD=null;});
 cv.addEventListener('pointerup',e=>{const pd=PD;PD=null;const p=toL(e);if(PLACE){if(e.pointerType==='mouse'&&ghost)tryPlace(ghost);return;}if(pd&&pd.moved)return;if(!S.started)return;
+ const pe=hitPest(p);if(pe){S.pests=S.pests.filter(q=>q!==pe);S.flags.pestKill=(S.flags.pestKill||0)+1;SFX.coin();sparkle(pe.x,pe.y-8,10,[255,255,255]);toast('🪸 セイタカイソギンチャクを取り除いたよ');if(S.flags.pestKill===1)say('本物の水槽では、専用の薬で退治したり、ペパーミントシュリンプに食べてもらったりするよ。ショップの「お掃除係」で迎えられる。');save();return;}
  const f=hitFish(p);if(f){f.happy=1;f.vy-=70;addPart({type:'heart',x:f.x,y:f.y-18,vx:0,vy:-22,life:1.2,max:1.2,s:11});if(f.ref)openFishCard(f.ref.id);return;}
  const c=hitCoral(p);if(c){c.ret=1;SFX.tap();S.flags.tapped=true;sparkle(c.x,c.y-30*coralScale(c),6,[255,255,255]);openCard(c.id);return;}
  addPart({type:'ripple',x:p.x,y:p.y,life:0.8,max:0.8});sparkle(p.x,p.y,4,[200,240,255]);closeCard();});
@@ -991,7 +1104,7 @@ function updPlaceBanner(){const sp=CORALS[PLACE.sp];const el=document.getElement
  st.textContent=!i.ok?(i.far?'✖ ここには置けない':'✖ となりと近すぎ'):i.lv<sp.light[0]?'△ 光が足りない':i.lv>sp.light[1]?'△ 光が強すぎ':sp.sand&&!i.sand?'△ 砂の上が好き':i.ev.near||i.ev.stung?'△ となりと近い':'◎ ばっちり！';
  st.style.color=!i.ok?'#e8506a':st.textContent[0]==='◎'?'#2fae6a':'#e0901a';}
 document.getElementById('placeOk').onclick=()=>{if(PLACE&&ghost)tryPlace(ghost);};
-document.getElementById('placeCancel').onclick=()=>{const was=PLACE;endPlace();if(was&&!was.moveId){S.cp+=CORALS[was.sp].price;toast('購入をキャンセルしたよ（💎は返ってきた）');}};
+document.getElementById('placeCancel').onclick=()=>{const was=PLACE;endPlace();if(was&&!was.moveId&&!was.free){S.cp+=CORALS[was.sp].price;toast('購入をキャンセルしたよ（💎は返ってきた）');}};
 
 /* 行動 */
 const cool={feed:0,wc:0,scrub:0};
@@ -1050,12 +1163,13 @@ let hudNext=0;
 function hudTick(t){document.body.classList.toggle('night',L.m*L.b>0.5||L.b<0.5);
  const lbl=L.m<0.15?'白色LED':L.m>0.85?'ブルーLED':'ミックス';document.getElementById('lightLbl').textContent=(L.cycle?'⏱ ':'')+lbl;if(L.cycle)slider.value=Math.round(L.m*100);
  if(t<hudNext)return;hudNext=t+0.25;
- document.getElementById('hDay').textContent=S.day;const hh=Math.floor(S.time),mm=Math.floor((S.time-hh)*60/10)*10;document.getElementById('hTime').textContent=`${hh}:${String(mm).padStart(2,'0')}`;document.getElementById('hMoon').textContent=MOONS[moonIdx()];
+ document.getElementById('hDay').textContent=S.day;const hh=Math.floor(S.time),mm=Math.floor((S.time-hh)*60/10)*10;document.getElementById('hTime').textContent=`${hh}:${String(mm).padStart(2,'0')}`;document.getElementById('hMoon').textContent=MOONS[moonIdx()];const se=SEASONS[seasonIdx()];document.getElementById('hSeason').textContent=se[0]+se[1];
  document.getElementById('hCp').textContent=Math.floor(S.cp);
  const q=document.getElementById('gQ');q.style.width=S.q+'%';q.style.background=S.q>70?'var(--ok)':S.q>50?'var(--warn)':'var(--bad)';
  const gs=document.getElementById('gS');gs.textContent=S.sal.toFixed(3);gs.style.color=S.sal>1.0265?'var(--bad)':S.sal>1.0245?'var(--warn)':'';
  const gt=document.getElementById('gT');gt.textContent=S.temp.toFixed(1)+'℃';gt.style.color=S.temp>27.5?'var(--bad)':S.temp>26.8?'var(--warn)':'';
  const ga=document.getElementById('gA');ga.style.width=S.algae+'%';ga.style.background=S.algae<30?'var(--ok)':S.algae<60?'var(--warn)':'var(--bad)';
+ document.getElementById('mascot').classList.toggle('quiz',quizReady());
  if(selId&&t>cardNext){cardNext=t+0.6;renderCard();}
  if(t>saveNext){saveNext=t+5;save();}}
 let cardNext=0,saveNext=0;
@@ -1066,7 +1180,7 @@ function nextBubble(){const el=document.getElementById('bubble'),tx=document.get
  bTyping=setInterval(()=>{i+=2;tx.innerHTML=esc(s.slice(0,i)).replace(/\n/g,'<br>');if(i>=s.length){clearInterval(bTyping);bTyping=null;bHide=setTimeout(nextBubble,Math.max(5000,s.length*90));}},24);
  el.querySelector('.nx').style.display='';}
 document.getElementById('bubble').onclick=()=>{if(bTyping){clearInterval(bTyping);bTyping=null;}nextBubble();};
-document.getElementById('nemo').onclick=()=>{const tips=['サンゴは「動物」。体の中の褐虫藻（かっちゅうそう）が、光で栄養を作ってくれるんだ。','白い光は昼間の海、青い光は少し深い海の色に近いんだって。','サンゴが白くなるのは「白化」。褐虫藻が抜けてしまった状態で、原因を取り除けば戻ることもあるよ。','サンゴの健康は「光・水流・水質・塩分・水温」のバランスで決まるよ。','新しいサンゴは、置いた場所の光が合っているかタップして確かめてね。','ディスクコーラルみたいに、暗い場所が好きなサンゴもいるんだ。','成長100%になったサンゴは株分けできる。育てて増やすのもサンゴ趣味の楽しみ！'];const m=MISSIONS[S.mi];say(m&&Math.random()<0.4?`今のミッション：「${m.title}」\n${m.desc}`:tips[(Math.random()*tips.length)|0]);};
+document.getElementById('nemo').onclick=()=>{if(quizReady()){openQuiz();return;}const tips=['サンゴは「動物」。体の中の褐虫藻（かっちゅうそう）が、光で栄養を作ってくれるんだ。','白い光は昼間の海、青い光は少し深い海の色に近いんだって。','サンゴが白くなるのは「白化」。褐虫藻が抜けてしまった状態で、原因を取り除けば戻ることもあるよ。','サンゴの健康は「光・水流・水質・塩分・水温」のバランスで決まるよ。','新しいサンゴは、置いた場所の光が合っているかタップして確かめてね。','ディスクコーラルみたいに、暗い場所が好きなサンゴもいるんだ。','成長100%になったサンゴは株分けできる。育てて増やすのもサンゴ趣味の楽しみ！'];const m=MISSIONS[S.mi];say(m&&Math.random()<0.4?`今のミッション：「${m.title}」\n${m.desc}`:tips[(Math.random()*tips.length)|0]);};
 let toastT=0;function toast(s){const el=document.getElementById('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400);}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function updMission(){const m=MISSIONS[S.mi];document.getElementById('mTitle').innerHTML=m?`<b>ミッション ${S.mi+1}/${MISSIONS.length}</b>　${esc(m.title)}`:'<b>全ミッション達成！</b>　自由に水槽づくりを楽しもう';}
@@ -1097,10 +1211,12 @@ function renderFishCard(){const r=S.fish.find(f=>f.id===selFish);if(!r){closeCar
  <div class="row2" style="margin-top:10px">成長<div class="gbar"><i style="width:${gp}%;background:#5aa9ff"></i></div>${gp}%</div><div style="font-size:11.5px;color:var(--sub)">${gp>=100?'立派なおとなになったよ！':'エサをもらうと、早く大きくなる'}</div>
  <ul class="cond"><li><span class="mk o">🐟</span><span>${sp.desc}</span></li><li><span class="mk o">💡</span><span>${sp.fact}</span></li></ul>
  <div class="row2"><input id="fname" maxlength="10" placeholder="名前をつける（10文字まで）" value="${esc(r.name||'')}" style="flex:1;padding:7px 10px;border-radius:10px;border:1px solid rgba(0,60,120,.2);font:inherit"><button class="pbtn" data-f="name">つける</button></div>
+ ${r.ich?`<div style="margin:8px 0;padding:8px 10px;border-radius:10px;background:rgba(232,80,106,.12);font-size:12.5px"><b>🩺 白点病にかかっている</b>（あと約${Math.max(1,Math.round(r.ich*24))}時間で危ない）<br>本物では、サンゴ水槽に薬を入れるとサンゴやエビまで弱るので、別の水槽（隔離水槽）で治療する。</div><div class="btns"><button data-f="cure" class="hot">🩺 隔離水槽で治療する（💎30）</button></div>`:''}
  <div class="btns"><button data-f="release">${releaseArm?'本当にお別れする？':'👋 手放す'}</button></div>
  ${releaseArm?'<div style="font-size:11.5px;color:var(--sub);margin-top:6px">※ ゲームではショップに引き取ってもらいます。本物の魚は、海や川に放してはいけません（すんでいる生き物のバランスを壊してしまう）。飼えなくなったら、買ったお店に相談しよう。</div>':''}`;}
 document.getElementById('card').addEventListener('click',e=>{const a=e.target.closest('[data-f]')?.dataset.f;if(!a||!selFish)return;const r=S.fish.find(f=>f.id===selFish);if(!r)return;
  if(a==='close')closeCard();
+ if(a==='cure'&&r.ich){if(S.cp<30){toast('💎が足りないよ');return;}S.cp-=30;r.ich=0;S.flags.cured=true;SFX.chime();toast(`🩺 ${r.name||FISH[r.sp].name}の白点病が治ったよ！`);renderFishCard();save();}
  if(a==='name'){const v=document.getElementById('fname').value.trim().slice(0,10);r.name=v||undefined;renderFishCard();toast(v?`「${v}」って名前にしたよ`:'名前を消したよ');save();}
  if(a==='release'){if(!releaseArm){releaseArm=1;renderFishCard();return;}const sp=FISH[r.sp];const gain=Math.round(sp.price*0.3);S.fish=S.fish.filter(f=>f!==r);FISHES=FISHES.filter(f=>f.ref!==r);S.cp+=gain;closeCard();toast(`${r.name||sp.name}をショップに引き取ってもらったよ 💎+${gain}`);save();}});
 function openCard(id){if(VIEW)return;selFish=null;selId=id;cardNext=0;renderCard();document.getElementById('card').classList.remove('hidden');}
@@ -1120,12 +1236,15 @@ function renderCard(){const c=S.corals.find(c=>c.id===selId);if(!c){closeCard();
  <div class="row2">成長<div class="gbar"><i style="width:${gp}%;background:#5aa9ff"></i></div>${gp}%</div>
  <div style="font-size:11.5px;color:var(--sub)">${sp.nofrag?'この子は株分けしないサンゴ':c.g>=1?'✂ 株分けできるよ！':'成長100%で株分けできるようになる'}</div>
  <ul class="cond">${condList(c,ev).map(([l,m,s])=>`<li><span class="mk ${m}">${m==='o'?'○':m==='t'?'△':'×'}</span><span><b>${l}</b>　${esc(s)}</span></li>`).join('')}</ul>
- <div class="btns"><button data-a="move">↔ 移動</button>${!sp.nofrag&&c.g>=1?'<button data-a="frag" class="hot">✂ 株分け</button>':''}<button data-a="zukan">📖 図鑑</button><button data-a="sell">${sellArm===c.id?'本当に手放す？':'👋 手放す'}</button></div>`;}
+ <div class="btns"><button data-a="move">↔ 移動</button>${!sp.nofrag&&c.g>=1?'<button data-a="frag" class="hot">✂ 株分け</button>':''}${c.g>=1&&!sp.nofrag?matchReq(c).map(r=>`<button data-a="req:${r.id}" class="hot">📮 ${esc(r.npc)}に譲る</button>`).join(''):''}<button data-a="zukan">📖 図鑑</button><button data-a="sell">${sellArm===c.id?'本当に手放す？':'👋 手放す'}</button></div>`;}
 document.getElementById('card').addEventListener('click',e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(!a)return;const c=S.corals.find(c=>c.id===selId);if(!c)return;const sp=CORALS[c.sp];
  if(a==='close')closeCard();
  if(a==='move'){startPlace({sp:c.sp,morph:c.morph,seed:c.seed,moveId:c.id});}
  if(a==='frag'&&c.g>=1&&!sp.nofrag){c.g=0.62;const gain=Math.round(sp.price*0.45+15);S.cp+=gain;S.frags++;S.flags.frag=true;SFX.coin();sparkle(c.x,c.y-30,18);toast(`✂ 株分け成功！ 仲間のアクアリストに譲って 💎+${gain}`);renderCard();save();}
  if(a==='zukan'){openZukan(c.sp,c.morph);}
+ if(a.startsWith('req:')&&c.g>=1){const r=S.req.find(q=>q.id===+a.slice(4));if(!r)return;c.g=0.62;S.cp+=r.reward;S.req=S.req.filter(q=>q!==r);S.flags.trades=(S.flags.trades||0)+1;SFX.fanfare();sparkle(c.x,c.y-30,20,[255,220,150]);toast(`📮 ${r.npc}に譲ったよ！ 💎+${r.reward}`);
+  if(r.gift){const cand=CORAL_IDS.filter(id=>CORALS[id].diff<=3);const gsp=cand[(Math.random()*cand.length)|0];const gm=pickMorph(gsp,true);say(`${r.npc}：「ありがとう！ お礼にうちの${CORALS[gsp].name}を分けてあげるね」`);setTimeout(()=>startPlace({sp:gsp,morph:gm,seed:(Math.random()*1e9)|0,free:true}),400);}
+  else say(`${r.npc}：「ありがとう！ 大事に育てるね」 本物の世界でも、アクアリストどうしで株を分け合うのはよくあることなんだ。`);closeCard();save();return;}
  if(a==='remove'&&c.dead){S.corals=S.corals.filter(o=>o!==c);closeCard();bubbles(c.x,c.y,8);toast('🧹 骨格を取り除いたよ');save();return;}
  if(c.dead)return;
  if(a==='sell'){if(sellArm!==c.id){sellArm=c.id;renderCard();return;}sellArm=0;const gain=Math.round(sp.price*0.4);S.cp+=gain;S.corals=S.corals.filter(o=>o!==c);closeCard();toast(`${sp.name}をショップに引き取ってもらったよ 💎+${gain}`);save();}});
@@ -1139,7 +1258,7 @@ let shopTab='coral';
 function openShop(tab=shopTab){shopTab=tab;const cp=Math.floor(S.cp);let body='';
  if(tab==='coral'){body=`<div class="grid">${CORAL_IDS.map(id=>{const sp=CORALS[id];const full=S.corals.filter(c=>!c.dead).length>=TANKS[S.eq.tank].cap;return`<div class="item"><img src="${coralThumb(id,0)}"><h4>${sp.name}</h4><div>${chip(sp.group)}<span class="stars">${stars(sp.diff)}</span></div><div class="catch">${sp.catch}</div><div style="font-size:11px">☀ 光：${lightWord(sp.light[0])}　🌊 水流：${flowWord(sp.flow[0])}</div><div class="meta"><span class="price">💎${sp.price}</span><button class="pbtn hot" data-buy="${id}" ${cp<sp.price||full?'disabled':''}>${full?'満員（水槽を大きく）':'迎える'}</button></div></div>`;}).join('')}</div><p style="font-size:12px;margin-top:10px;color:var(--sub)">左半分＝白い光、右半分＝青い光で見たときの色。カラー（色違い）は迎えるまでのお楽しみ！</p>`;}
  if(tab==='fish'){body=`<div class="grid">${Object.keys(FISH).map(id=>{const f=FISH[id];const n=S.fish.filter(x=>x.sp===id).length;const small=f.minTank&&S.eq.tank<f.minTank;const lim=small||n>=f.max||S.fish.length>=TANKS[S.eq.tank].fish;return`<div class="item"><img src="${fishThumb(id)}"><h4>${f.name}</h4><div class="catch">${f.desc}</div><div style="font-size:11px">💡${f.fact}</div><div class="meta"><span class="price">💎${f.price}</span><button class="pbtn hot" data-fish="${id}" ${cp<f.price||lim?'disabled':''}>${small?'水槽が小さい':lim?'これ以上は無理':'迎える'}</button></div></div>`;}).join('')}</div>`;}
- if(tab==='crew'){const cap=CREW_CAP[S.eq.tank];const tot=Object.values(S.crew).reduce((a,b)=>a+b,0);body=`<p style="font-size:12.5px;margin-bottom:8px">コケを食べてくれる「お掃除係」。いま ${tot}/${cap} 匹（水槽が大きいほど増やせる）</p><div class="grid">${Object.keys(CREW).map(k=>{const c=CREW[k];return`<div class="item"><h4>${k==='snail'?'🐌':'🦀'} ${c.name}</h4><div>いま ${S.crew[k]||0} 匹</div><div class="catch">${c.desc}</div><div class="meta"><span class="price">💎${c.price}</span><button class="pbtn hot" data-crew="${k}" ${cp<c.price||tot>=cap?'disabled':''}>${tot>=cap?'満員':'迎える'}</button></div></div>`;}).join('')}</div>`;}
+ if(tab==='crew'){const cap=CREW_CAP[S.eq.tank];const tot=Object.values(S.crew).reduce((a,b)=>a+b,0);body=`<p style="font-size:12.5px;margin-bottom:8px">コケを食べてくれる「お掃除係」。いま ${tot}/${cap} 匹（水槽が大きいほど増やせる）</p><div class="grid">${Object.keys(CREW).map(k=>{const c=CREW[k];return`<div class="item"><h4>${k==='snail'?'🐌':k==='hermit'?'🦀':'🦐'} ${c.name}</h4><div>いま ${S.crew[k]||0} 匹</div><div class="catch">${c.desc}</div><div class="meta"><span class="price">💎${c.price}</span><button class="pbtn hot" data-crew="${k}" ${cp<c.price||tot>=cap?'disabled':''}>${tot>=cap?'満員':'迎える'}</button></div></div>`;}).join('')}</div>`;}
  if(tab==='eq'){body=`<div class="grid">${Object.keys(EQ_META).map(k=>{const cur=S.eq[k],nx=EQ[k][cur+1];const[ic,lb]=EQ_META[k];return`<div class="item"><h4>${ic} ${lb}</h4><div>いま：<b>${EQ[k][cur].name}</b></div>${nx?`<div style="font-size:12px">つぎ：<b>${nx.name}</b></div><div class="catch">${nx.desc}</div><div class="meta"><span class="price">💎${nx.price}</span><button class="pbtn hot" data-eq="${k}" ${cp<nx.price?'disabled':''}>導入する</button></div>`:'<div class="catch">最高グレード！</div>'}</div>`;}).join('')}</div>`;}
  openModal(`<h2>🛒 ショップ　<span style="font-size:15px;color:#ff7a1a">💎${cp}</span></h2><div class="tabs"><button data-tab="coral" class="${tab==='coral'?'on':''}">🪸 サンゴ</button><button data-tab="fish" class="${tab==='fish'?'on':''}">🐠 魚</button><button data-tab="crew" class="${tab==='crew'?'on':''}">🐚 お掃除係</button><button data-tab="eq" class="${tab==='eq'?'on':''}">🔧 機材</button></div>${body}`);}
 mbody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled){const it=e.target.closest('[data-z]');if(it)openZukan(it.dataset.z);return;}
@@ -1153,6 +1272,10 @@ mbody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.d
  if(b.dataset.back){openZukan();return;}
  if(b.dataset.zn){zukanStep(+b.dataset.zn);return;}
  if(b.dataset.mt){openMissions(b.dataset.mt);return;}
+ if(b.dataset.qz!==undefined){answerQuiz(+b.dataset.qz);return;}
+ if(b.dataset.dg!==undefined){diagAnswer(+b.dataset.dg);return;}
+ if(b.dataset.dgo!==undefined){if(b.dataset.dgo==='1')diagStart();else{closeModal();say('オッケー！ 🛒ショップで好きなサンゴを選んでみよう。はじめてなら星1つ（★）のサンゴがおすすめだよ。');}return;}
+ if(b.dataset.inst){installApp();return;}
  if(b.dataset.ph==='photo'){closeModal();setTimeout(takePhoto,60);return;}
  if(b.dataset.ph==='share'){copyShare();return;}
  if(b.dataset.help==='reset'){if(b.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{b.dataset.arm='1';b.textContent='本当に消す？（もう一度押す）';}}});
@@ -1176,7 +1299,8 @@ function openZukan(sp=null,morph=0,tab=zTab,mode='split'){zTab=tab;
  const lost=S.lost||[];const mem=lost.length?`<div style="margin-top:14px;font-size:12.5px"><b>🥀 お別れしたサンゴ：${lost.length}株</b><ul style="list-style:none;margin-top:4px;color:var(--sub)">${lost.slice(-6).reverse().map(l=>`<li>Day ${l.day}　${CORALS[l.sp].name}　― 原因：${esc(l.cause)}</li>`).join('')}</ul></div>`:'';
  openModal(`<h2>📖 図鑑</h2>${tabs}<div class="grid">${grid}</div>${tab==='coral'?mem:''}`);}
 {let zx=null;mbody.addEventListener('pointerdown',e=>{zx=ZCUR&&e.target.id==='zimg'?e.clientX:null;});mbody.addEventListener('pointerup',e=>{if(zx!=null&&Math.abs(e.clientX-zx)>50)zukanStep(e.clientX<zx?1:-1);zx=null;});}
-function openMissions(tab='m'){const A=S.ach||{};const na=ACH.filter(a=>A[a.id]).length;const tabs=`<div class="tabs"><button data-mt="m" class="${tab==='m'?'on':''}">🎯 ミッション ${Math.min(S.mi,MISSIONS.length)}/${MISSIONS.length}</button><button data-mt="a" class="${tab==='a'?'on':''}">🏅 称号 ${na}/${ACH.length}</button></div>`;
+function openMissions(tab='m'){const A=S.ach||{};const na=ACH.filter(a=>A[a.id]).length;const tabs=`<div class="tabs"><button data-mt="m" class="${tab==='m'?'on':''}">🎯 ミッション ${Math.min(S.mi,MISSIONS.length)}/${MISSIONS.length}</button><button data-mt="r" class="${tab==='r'?'on':''}">📮 依頼 ${(S.req||[]).length}</button><button data-mt="a" class="${tab==='a'?'on':''}">🏅 称号 ${na}/${ACH.length}</button></div>`;
+ if(tab==='r'){const R=S.req||[];openModal(`<h2>📮 アクアリストからの依頼</h2>${tabs}${R.length?`<ul class="mlist">${R.map(r=>`<li class="cur"><span class="ic">📮</span><div><b>${esc(r.npc)}</b>　<small>Day ${r.until} まで</small><br>「${CORALS[r.sp].name}${r.morph>=0?`（${CORALS[r.sp].morphs[r.morph].name}）`:'（どの色でもOK）'}を株分けしてほしい」<br><small>お礼：💎${r.reward}${r.gift?'＋おまけ':''}</small></div></li>`).join('')}</ul><p style="font-size:12px;color:var(--sub);margin-top:8px">育ちきった（成長100%）株をタップすると「譲る」ボタンが出るよ。</p>`:'<p style="font-size:13px">いまは依頼がないよ。サンゴを育てていると、ときどき届くよ。</p>'}`);return;}
  if(tab==='a'){openModal(`<h2>🏅 称号</h2>${tabs}<ul class="mlist">${ACH.map(a=>`<li class="${A[a.id]?'':'done'}"><span class="ic">${A[a.id]?a.icon:'🔒'}</span><div><b>${A[a.id]?a.name:'？？？'}</b>${A[a.id]?`　<small>Day ${A[a.id]}</small>`:''}<br><small>${a.desc}</small></div></li>`).join('')}</ul>`);return;}
  openModal(`<h2>🎯 ミッション</h2>${tabs}<ul class="mlist">${MISSIONS.map((m,i)=>`<li class="${i<S.mi?'done':i===S.mi?'cur':''}"><span class="ic">${i<S.mi?'✅':i===S.mi?'👉':'🔒'}</span><div><b>${i<=S.mi?esc(m.title):'？？？'}</b>　<small>💎${m.reward}</small><br><small>${i<=S.mi?esc(m.desc):'前のミッションをクリアすると表示'}</small></div></li>`).join('')}</ul>`);}
 function openHelp(){openModal(`<h2>🐠 遊び方</h2><div class="help">
@@ -1193,6 +1317,8 @@ function openHelp(){openModal(`<h2>🐠 遊び方</h2><div class="help">
  <p><b>称号・共有</b>：🎯ミッションの「称号」タブで集めた称号が見られる。📷から、自分の水槽を見せるURLをコピーできる。🔊で音のオン／オフ。</p>
  <p>ゲームの1日は約3分。進み具合は自動で保存されるよ（このブラウザの中だけ）。</p>
  <p style="font-size:12px;color:var(--sub)">※ ゲーム内の数値や仕組みは、楽しく学べるように簡略化したもの。本物のサンゴ飼育の目安とは異なる。</p>
+ <p><b>🪸 サンゴ診断</b>：3つの質問で、あなたに合うサンゴが分かる。 <button class="pbtn" data-dgo="1">診断する</button></p>
+ <p><b>📲 アプリみたいに使う</b>：ホーム画面に追加すると、アプリのように全画面で開けて、電波がなくても遊べる。 <button class="pbtn hot" data-inst="1">ホーム画面に追加</button></p>
  <p><button class="pbtn" data-help="reset">🗑 セーブを消して最初から</button></p></div>`);}
 document.getElementById('shopBtn').onclick=()=>openShop();
 document.getElementById('zukanBtn').onclick=()=>openZukan();
@@ -1202,14 +1328,25 @@ document.getElementById('helpBtn').onclick=openHelp;
 document.getElementById('sndBtn').onclick=()=>{audioInit();setSound(!SND.on);};
 addEventListener('keydown',e=>{if(ZCUR&&!modal.classList.contains('hidden')&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){zukanStep(e.key==='ArrowLeft'?-1:1);return;}if(e.key==='Escape'){closeModal();closeCard();if(PLACE)document.getElementById('placeCancel').click();}if(!S.started||e.target.tagName==='INPUT')return;if(e.key==='1')setLight(0);if(e.key==='2')setLight(0.5);if(e.key==='3')setLight(1);});
 addEventListener('visibilitychange',()=>{if(document.hidden)save();});
+let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;});
+function installApp(){if(installEv){installEv.prompt();installEv=null;return;}const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);toast(ios?'Safariの共有ボタン（□↑）→「ホーム画面に追加」を選んでね':'ブラウザのメニュー（︙）→「ホーム画面に追加」または「アプリをインストール」を選んでね');}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize,150);});
 
 /* ============================ タイトル・起動 ============================ */
 function demoCorals(){const D=[['acropora',0,672,0],['montipora',0,176,0],['torch',1,300,0],['toadstool',0,960,0],['gsp',0,1080,0],['zoa',0,500,0],['mushroom',1,110,560],['brain',0,800,640],['zoa',1,1150,0],['mushroom',0,380,634]];
  return D.map(([sp,morph,x,y],i)=>{const yy=y||surfaceY(x)+14;return{id:1000+i,sp,morph,x,y:yy,sand:yy>=sandTop(x)-6,g:1,h:1,seed:1234+i*97,ret:0};});}
 function begin(){audioInit();S.started=true;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');L.tm=S.flags.lastLight??0;syncFishAndCrew();updMission();syncLightUI();
- if(!S.flags.intro){S.flags.intro=true;say('ようこそ！ ぼくはクマノミ先生。ここはきみの、はじめてのサンゴ水槽だよ。');say('サンゴって、実は「動物」なんだ。体の中に褐虫藻（かっちゅうそう）という小さな藻を住まわせて、光で栄養を作ってもらっているんだよ。');say('だから照明がとっても大事。まずは🛒ショップで、最初のサンゴを迎えよう！');}
- else say(`おかえり！ Day ${S.day} だよ。サンゴたちの様子を見てあげてね。`);save();}
+ if(!S.flags.diag&&!S.corals.length){S.flags.diag=true;diagOffer();}
+ if(!S.flags.intro){S.flags.intro=true;say('ようこそ！ ぼくはクマノミ先生。ここはきみの、はじめてのサンゴ水槽だよ。');say('サンゴって、実は「動物」なんだ。体の中に褐虫藻（かっちゅうそう）という小さな藻を住まわせて、光で栄養を作ってもらっているんだよ。');say('だから照明がとっても大事。まずは最初のサンゴを、岩の上に置いてみよう！');}
+ else if(!awayProgress())say(`おかえり！ Day ${S.day} だよ。サンゴたちの様子を見てあげてね。`);save();}
+/* 留守のあいだも時間が進む（実時間2時間＝ゲーム1日、最大3日）。留守中はサンゴが死なない「お留守番モード」 */
+function awayProgress(){if(!S.lastSeen)return false;const hrs=(Date.now()-S.lastSeen)/3.6e6;const days=Math.min(3,hrs/2);if(days<0.1)return false;
+ const cp0=S.cp;let grown=0;for(const c of S.corals){if(c.dead)continue;const sp=CORALS[c.sp];const h=Math.max(0.5,c.h);const g0=c.g;c.g=Math.min(1.25,c.g+sp.grow*0.15*days*Math.max(0,(h-0.45)/0.55));if(c.g>g0+0.01)grown++;S.cp+=sp.value*h*h*(0.4+0.6*Math.min(1,c.g))*90*days;c.h=Math.max(0.5,c.h);}
+ for(const f of S.fish)growFish(f,0.03*days);S.q=Math.max(60,S.q-10*days);if(!S.eq.ato)S.sal=Math.min(1.027,S.sal+0.0014*days);S.algae=Math.min(60,S.algae+8*days);
+ const add=days*24;const nd=Math.floor((S.time+add)/24);S.time=(S.time+add)%24;for(let i=0;i<nd;i++){S.day++;newRequest();}
+ const gain=Math.floor(S.cp-cp0);const hh=hrs<1?`${Math.round(hrs*60)}分`:hrs<48?`${Math.round(hrs)}時間`:`${Math.round(hrs/24)}日`;
+ openModal(`<h2>🏠 おかえりなさい！</h2><p style="font-size:14px;line-height:1.9">${hh}ぶりだね。留守のあいだ（ゲームで約${Math.max(1,Math.round(days*10)/10)}日）、クマノミ先生がお留守番していたよ。</p><ul class="mlist"><li><span class="ic">💎</span><div>サンゴが育てたポイント <b>+${gain}</b></div></li><li><span class="ic">🪸</span><div>成長したサンゴ <b>${grown}株</b></div></li><li><span class="ic">💧</span><div>水のきれいさ ${Math.round(S.q)}%${S.q<75?'　→ 水換えしてあげよう':''}</div></li><li><span class="ic">🟢</span><div>コケ ${Math.round(S.algae)}%${S.algae>40?'　→ コケ取りをしよう':''}</div></li></ul><p style="font-size:12px;color:var(--sub);margin-top:8px">留守のあいだはサンゴが死なない「お留守番モード」。進むのは最大でゲームの3日分だよ。</p>`);SFX.chime();return true;}
 function syncFishAndCrew(){syncFish(S.fish);syncCrew();}
 function syncFish(list){FISHES=list.map(f=>Object.assign(spawnFish(f.sp),{ref:f}));}
 document.getElementById('startBtn').onclick=begin;
@@ -1220,7 +1357,7 @@ window.addEventListener('error',e=>{document.body.dataset.err=(e.message||'')+' 
 resize();initCaustics();makeAlgaeTex();titleCorals=demoCorals();
 const VS=VIEWH&&loadShare(VIEWH);
 if(VS){VIEW=true;S=VS;document.body.classList.add('view');document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFishAndCrew();document.getElementById('mTitle').innerHTML='👀 だれかの水槽を見ています　<b>▶ 自分もはじめる</b>';document.getElementById('mchip').onclick=()=>{location.href=location.href.split('#')[0];};}
-else if(DEMO){S=DEF();S.started=true;S.cp=3000;S.eq={tank:3,pump:2,led:2,skimmer:1,cooler:1,ato:1};S.corals=demoCorals();S.fish=['clown','clown','yellowtang','bluetang','firefish','chromis','chromis','chromis','gramma','blenny','mandarin'].map((sp,i)=>({id:i+1,sp,g:0.9}));S.crew={snail:3,hermit:3};S.algae=Q.has('algae')?80:5;CORAL_IDS.forEach(id=>S.zukan[id]=[0]);S.mi=MISSIONS.length;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFishAndCrew();updMission();}
+else if(DEMO){S=DEF();S.started=true;S.cp=3000;S.eq={tank:3,pump:2,led:2,skimmer:1,cooler:1,ato:1,heater:1,backup:1};S.corals=demoCorals();S.fish=['clown','clown','yellowtang','bluetang','firefish','chromis','chromis','chromis','gramma','blenny','mandarin'].map((sp,i)=>({id:i+1,sp,g:0.9}));S.crew={snail:3,hermit:3};S.algae=Q.has('algae')?80:5;CORAL_IDS.forEach(id=>S.zukan[id]=[0]);S.mi=MISSIONS.length;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFishAndCrew();updMission();}
 else if(S.started){document.getElementById('startBtn').textContent='つづきから';document.getElementById('resetBtn').classList.remove('hidden');S.started=false;syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);}
 else syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);
 if(Q.get('light')==='blue'){L.m=L.tm=1;}if(Q.get('light')==='mix'){L.m=L.tm=0.5;}
