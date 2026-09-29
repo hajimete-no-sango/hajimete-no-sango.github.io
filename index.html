@@ -141,22 +141,24 @@ body.night .item{background:rgba(40,50,120,.45)}
 .tcard button.ghost{background:rgba(255,255,255,.2);box-shadow:none;font-size:13px;min-width:0;padding:8px 18px}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20;transition:opacity .5s}
 body.view #hudR,body.view .grp:nth-child(2),body.view #shopBtn,body.view #missionBtn,body.view #mascot{display:none!important}
+body.placing #bar,body.placing #mchip,body.placing #mascot{opacity:0;pointer-events:none}
+#bar,#mchip,#mascot{transition:opacity .3s}
 body.titling #hud,body.titling #mchip,body.titling #bar,body.titling #mascot,body.shot #hud,body.shot #mchip,body.shot #bar,body.shot #mascot,body.shot #title,body.shot #toast{display:none!important}
 @media (max-width:760px),(orientation:portrait){
  #hud{top:6px;left:6px;right:6px;flex-wrap:wrap;gap:4px}
  #hudL{padding:5px 10px;gap:8px;font-size:12px}#hudL b{font-size:15px}
  #hudR{padding:5px 8px;gap:7px;font-size:10px}.g{min-width:0}.g b{font-size:12px}.g label{font-size:9px}.gbar{width:46px}
  #sndBtn,#helpBtn{width:26px;height:26px}
- #mchip{top:auto;bottom:118px;font-size:11.5px;padding:5px 12px;max-width:92vw}
+ #mchip{top:84px;bottom:auto;font-size:11.5px;padding:5px 12px;max-width:92vw}
  #bar{bottom:6px;padding:4px;gap:2px;width:calc(100vw - 10px)}
  .grp{padding:0 2px;gap:2px;flex-wrap:wrap;justify-content:center}.grp+.grp{border-left:none}
  button.tb{min-width:42px;padding:3px 3px;font-size:16px;border-radius:11px}button.tb span{font-size:8.5px}
  #lightSlider{width:64px}.lightwrap{font-size:8.5px}
- #mascot{bottom:auto;top:92px;left:4px}#nemo{width:54px;height:42px}#bubble{max-width:calc(100vw - 72px);font-size:12.5px;margin-bottom:0;padding:9px 12px}
+ #mascot{bottom:auto;top:118px;left:4px}#nemo{width:54px;height:42px}#bubble{max-width:calc(100vw - 72px);font-size:12.5px;margin-bottom:0;padding:9px 12px}
  #bubble:before{bottom:auto;top:12px}
  #card{left:6px;right:6px;width:auto;top:auto;bottom:6px;max-height:58vh}
  #mcard{width:100vw;max-height:94vh;padding:14px 12px;border-radius:14px}.grid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
- #place{top:auto;bottom:150px;flex-wrap:wrap;justify-content:center;font-size:13px;gap:8px}
+ #place{top:62px;bottom:auto;flex-wrap:wrap;justify-content:center;font-size:13px;gap:8px}
  #toast{bottom:150px;white-space:normal;max-width:92vw;text-align:center}
  .tcard{padding:22px 20px}.tcard .l2{font-size:36px}.tcard .l1{font-size:17px}
 }
@@ -416,14 +418,15 @@ const cv=document.getElementById('c'); const MC=cv.getContext('2d'); let ctx=MC;
 let DPR=1,SC=1,OX=0,OY=0;
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);const cw=innerWidth,ch=innerHeight;cv.width=Math.round(cw*DPR);cv.height=Math.round(ch*DPR);CAM.hw=tankHW();camUpdate(0,true);buildEnv();}
 /* カメラ：水槽の幅に合わせて表示。スマホ縦画面では拡大して、横にスワイプで見渡す */
+let BAR_H=0;function measureBar(){const b=document.getElementById('bar');if(!b||document.body.classList.contains('placing'))return;const r=b.getBoundingClientRect();if(r.height>0)BAR_H=innerHeight-r.top+6;}
 const CAM={hw:600,x:CX};let isPortrait=false;
 const tankHW=()=>(!S.started&&!S.corals.length)?600:TANKS[S.eq.tank].hw;
 const tx0=()=>CX-tankHW(),tx1=()=>CX+tankHW();
 function camUpdate(dt,noEnv){const tg=tankHW();CAM.hw+=(tg-CAM.hw)*Math.min(1,dt*2.5);if(Math.abs(tg-CAM.hw)<0.5)CAM.hw=tg;
- const cw=innerWidth,ch=innerHeight;isPortrait=cw<ch*0.95;const fit=Math.min(cw/(2*CAM.hw+24),ch/H);
- SC=isPortrait?Math.max(fit,ch*0.74/H):fit;const vw=cw/SC,half=CAM.hw+12;
+ const cw=innerWidth,ch=innerHeight;isPortrait=cw<ch*0.95;const av=ch-BAR_H;const fit=Math.min(cw/(2*CAM.hw+24),av/H); // 下のツールバーに砂が隠れないよう、その上に収める
+ SC=isPortrait?Math.max(fit,(av-56)/H):fit;const vw=cw/SC,half=CAM.hw+12;
  CAM.x=vw>=2*half?CX:clamp(CAM.x,CX-half+vw/2,CX+half-vw/2);
- OX=cw/2-CAM.x*SC;OY=isPortrait?(ch-H*SC)/2-16:(ch-H*SC)/2;
+ OX=cw/2-CAM.x*SC;OY=isPortrait?av-4-H*SC:Math.max(0,(av-H*SC)/2);
  if(!noEnv){const k=Math.min(1.7,SC*DPR);if(Math.abs(k-ENV.k)/ENV.k>0.18&&performance.now()-ENV.t>800)buildEnv();}}
 const toL=e=>({x:(e.clientX-OX)/SC,y:(e.clientY-OY)/SC});
 
@@ -1098,8 +1101,8 @@ function tryPlace(p){const info=placeInfo(p);ghost=p;
  if(sp.morphs[c.morph].rare){toast(`✨ レアカラー「${sp.morphs[c.morph].name}」の${sp.name}！`);sparkle(p.x,p.y-30,30,[255,230,150]);say(`すごい！ ${sp.name}のレアカラー「${sp.morphs[c.morph].name}」だよ。本物の世界でも、珍しい色のサンゴはとても人気があるんだ。`);}else toast(`${sp.name}（${sp.morphs[c.morph].name}）を迎えたよ！`);
  const ev=evalCoral(c);if(ev.f.light<1)say(ev.lv<sp.light[0]?`${sp.name}には少し暗いかも。タップして「移動」で上の方へ動かせるよ。`:`${sp.name}には光が強すぎるかも。タップして「移動」で下の方へ動かせるよ。`);
  endPlace();save();}
-function startPlace(o){PLACE=o;ghost=null;touchPlace=false;closeModal();closeCard();document.getElementById('place').classList.remove('hidden');updPlaceBanner();}
-function endPlace(){PLACE=null;ghost=null;document.getElementById('place').classList.add('hidden');}
+function startPlace(o){PLACE=o;ghost=null;touchPlace=false;document.body.classList.add('placing');closeModal();closeCard();document.getElementById('place').classList.remove('hidden');updPlaceBanner();}
+function endPlace(){PLACE=null;ghost=null;document.body.classList.remove('placing');document.getElementById('place').classList.add('hidden');}
 function updPlaceBanner(){const sp=CORALS[PLACE.sp];const el=document.getElementById('placeMsg'),st=document.getElementById('placeSt');
  el.innerHTML=touchPlace?`<b>${sp.name}</b>：指でなぞって場所を決めよう`:`<b>${sp.name}</b>を置く場所をクリック（上ほど光が強い）`;
  const okb=document.getElementById('placeOk');okb.classList.toggle('hidden',!ghost);
@@ -1162,10 +1165,10 @@ function pluck(f,t){const c=SND.ctx;const o=c.createOscillator(),g=c.createGain(
 function pad(f,t,d){const c=SND.ctx;for(const m of[1,1.5,2]){const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=f*m;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.02,t+1.5);g.gain.linearRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(SND.master);o.start(t);o.stop(t+d+0.1);}}
 addEventListener('pointerdown',()=>{if(S.started)audioInit();else if(SND.ctx&&SND.ctx.state==='suspended')SND.ctx.resume();},{capture:true});
 /* ============================ HUD / 吹き出し / トースト ============================ */
-let hudNext=0;
+let hudNext=0,barNext=0;
 function hudTick(t){document.body.classList.toggle('night',L.m*L.b>0.5||L.b<0.5);
  const lbl=L.m<0.15?'白色LED':L.m>0.85?'ブルーLED':'ミックス';document.getElementById('lightLbl').textContent=(L.cycle?'⏱ ':'')+lbl;if(L.cycle)slider.value=Math.round(L.m*100);
- if(t<hudNext)return;hudNext=t+0.25;
+ if(t<hudNext)return;hudNext=t+0.25;if(t>barNext){barNext=t+1;measureBar();}
  document.getElementById('hDay').textContent=S.day;const hh=Math.floor(S.time),mm=Math.floor((S.time-hh)*60/10)*10;document.getElementById('hTime').textContent=`${hh}:${String(mm).padStart(2,'0')}`;document.getElementById('hMoon').textContent=MOONS[moonIdx()];const se=SEASONS[seasonIdx()];document.getElementById('hSeason').textContent=se[0]+se[1];
  document.getElementById('hCp').textContent=Math.floor(S.cp);
  const q=document.getElementById('gQ');q.style.width=S.q+'%';q.style.background=S.q>70?'var(--ok)':S.q>50?'var(--warn)':'var(--bad)';
@@ -1339,7 +1342,7 @@ let rzT=0;addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(resize
 /* ============================ タイトル・起動 ============================ */
 function demoCorals(){const D=[['acropora',0,672,0],['montipora',0,176,0],['torch',1,300,0],['toadstool',0,960,0],['gsp',0,1080,0],['zoa',0,500,0],['mushroom',1,110,560],['brain',0,800,640],['zoa',1,1150,0],['mushroom',0,380,634]];
  return D.map(([sp,morph,x,y],i)=>{const yy=y||surfaceY(x)+14;return{id:1000+i,sp,morph,x,y:yy,sand:yy>=sandTop(x)-6,g:1,h:1,seed:1234+i*97,ret:0};});}
-function begin(){audioInit();S.started=true;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');L.tm=S.flags.lastLight??0;syncFishAndCrew();updMission();syncLightUI();
+function begin(){audioInit();setTimeout(measureBar,50);S.started=true;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');L.tm=S.flags.lastLight??0;syncFishAndCrew();updMission();syncLightUI();
  if(!S.flags.diag&&!S.corals.length){S.flags.diag=true;diagOffer();}
  if(!S.flags.intro){S.flags.intro=true;say('ようこそ！ ぼくはクマノミ先生。ここはきみの、はじめてのサンゴ水槽だよ。');say('サンゴって、実は「動物」なんだ。体の中に褐虫藻（かっちゅうそう）という小さな藻を住まわせて、光で栄養を作ってもらっているんだよ。');say('だから照明がとっても大事。まずは最初のサンゴを、岩の上に置いてみよう！');}
  else if(!awayProgress())say(`おかえり！ Day ${S.day} だよ。サンゴたちの様子を見てあげてね。`);save();}
