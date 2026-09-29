@@ -1,0 +1,17 @@
+{
+  "name": "はじめてのサンゴ水槽",
+  "short_name": "サンゴ水槽",
+  "description": "サンゴを育てながら、サンゴの魅力と飼い方を学べるゲーム",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#061a33",
+  "theme_color": "#1a82c0",
+  "lang": "ja",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
