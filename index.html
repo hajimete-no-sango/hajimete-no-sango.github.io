@@ -831,7 +831,7 @@ function updFish(dt,t,corals){const hosts=corals.filter(c=>!c.dead&&['torch','ha
 let CREWRT=[];
 function syncCrew(){const want=[];for(const k in CREW)for(let i=0;i<(S.crew[k]||0);i++)want.push(k);
  CREWRT=want.map((type,i)=>CREWRT.find(c=>c.type===type&&c.i===i)||{type,i,x:CX+(Math.random()-0.5)*tankHW(),y:type==='snail'?200+Math.random()*350:0,tx:0,ty:0,ph:Math.random()*TAU,next:0,face:1});}
-function updCrew(dt,t){for(const c of CREWRT){if(t>c.next){c.next=t+5+Math.random()*8;c.tx=tx0()+30+Math.random()*(2*tankHW()-60);c.ty=c.type==='snail'?120+Math.random()*460:0;}
+function updCrew(dt,t){for(const c of CREWRT){if(c.type==='shrimp'){updShrimp(c,dt,t);continue;}if(t>c.next){c.next=t+5+Math.random()*8;c.tx=tx0()+30+Math.random()*(2*tankHW()-60);c.ty=c.type==='snail'?120+Math.random()*460:0;}
   const sp=c.type==='snail'?7:14;const dx=c.tx-c.x;c.x+=clamp(dx,-sp*dt,sp*dt);if(Math.abs(dx)>1)c.face=Math.sign(dx);
   if(c.type==='snail'){c.y+=clamp(c.ty-c.y,-sp*dt,sp*dt);}else{c.y=sandTop(c.x)+14;for(const f of FOOD)if(!f.dead&&f.y>=sandTop(f.x)-4&&Math.abs(f.x-c.x)<22){f.dead=true;}}}}
 function drawHermit(c,t){ctx.save();ctx.translate(c.x,c.y);ctx.scale(c.face*1.3,1.3);const w=Math.sin(t*8+c.ph);
@@ -840,6 +840,22 @@ function drawHermit(c,t){ctx.save();ctx.translate(c.x,c.y);ctx.scale(c.face*1.3,
  ctx.fillStyle=lc('#e0503a');ctx.beginPath();ctx.ellipse(6,-3,3,2.4,0,0,TAU);ctx.fill();
  ctx.strokeStyle=lc('#e0503a');ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(7,-4);ctx.lineTo(8,-9);ctx.moveTo(8.5,-4);ctx.lineTo(10.5,-8.5);ctx.stroke();
  ctx.fillStyle=lc('#111');ctx.beginPath();ctx.arc(8,-9.3,0.9,0,TAU);ctx.arc(10.6,-8.8,0.9,0,TAU);ctx.fill();ctx.restore();}
+/* ペパーミントシュリンプ：岩の上を歩き、セイタカイソギンチャクを見つけると食べに行く */
+function updShrimp(c,dt,t){if(!c.y){c.y=Math.min(surfaceY(c.x)+12,sandTop(c.x)+6);c.tx=c.x;c.ty=c.y;}
+ let tgt=null,best=1e9;for(const p of S.pests){const d=Math.hypot(p.x-c.x,p.y-c.y);if(d<best){best=d;tgt=p;}}
+ if(tgt){c.tx=tgt.x-6*c.face;c.ty=tgt.y-4;}else if(t>c.next){c.next=t+4+Math.random()*6;c.tx=tx0()+40+Math.random()*(2*tankHW()-80);c.ty=Math.min(surfaceY(c.tx)+12,sandTop(c.tx)+6);}
+ const dx=c.tx-c.x,dy=c.ty-c.y,d=Math.hypot(dx,dy),v=(tgt?38:22)*dt;if(d>1){c.x+=dx/d*Math.min(v,d);c.y+=dy/d*Math.min(v,d);if(Math.abs(dx)>0.5)c.face=Math.sign(dx);}
+ if(tgt&&Math.hypot(tgt.x-c.x,tgt.y-c.y)<14){c.eat=(c.eat||0)+dt;if(c.eat>3){c.eat=0;S.pests=S.pests.filter(p=>p!==tgt);sparkle(tgt.x,tgt.y-8,8,[255,255,255]);toast('🦐 ペパーミントシュリンプがセイタカイソギンチャクを食べたよ');S.flags.pestKill=(S.flags.pestKill||0)+1;save();}}else c.eat=0;}
+function drawShrimp(c,t){ctx.save();ctx.translate(c.x,c.y);ctx.scale(c.face*2,2);const bob=Math.sin(t*3+c.ph)*0.6;
+ const body=rgba(lit(hx('#f5c0b0')),0.92),stripe=rgba(lit(hx('#e0402a')),0.95),white=rgba(lit(hx('#ffffff')),0.95);
+ ctx.strokeStyle=stripe;ctx.lineWidth=0.8;ctx.lineCap='round';ctx.beginPath();for(let k=0;k<5;k++){const x=-4+k*2.6,w=Math.sin(t*10+k)*1.2;ctx.moveTo(x,1);ctx.lineTo(x+1+w,6);}ctx.stroke();
+ ctx.strokeStyle=white;ctx.lineWidth=0.6;ctx.beginPath();ctx.moveTo(8,-2);ctx.quadraticCurveTo(16,-10+bob,24,-6+bob*2);ctx.moveTo(8,-1.5);ctx.quadraticCurveTo(15,-4,25,-1+bob);ctx.stroke();
+ ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(9,-1);ctx.bezierCurveTo(6,-6,-4,-6,-9,-3);ctx.quadraticCurveTo(-12,-1,-11,2);ctx.bezierCurveTo(-4,2,4,2,9,1);ctx.closePath();ctx.fill();
+ ctx.strokeStyle=stripe;ctx.lineWidth=1;ctx.beginPath();for(let k=0;k<5;k++){const x=-7+k*3.2;ctx.moveTo(x,-4.6+Math.abs(k-2)*0.3);ctx.lineTo(x+0.6,1.5);}ctx.stroke();
+ ctx.fillStyle=stripe;ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(-15.5,-3.5);ctx.lineTo(-14.5,2.5);ctx.closePath();ctx.fill();
+ if(c.eat>0){ctx.strokeStyle=stripe;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(12,2.5+Math.sin(t*20));ctx.moveTo(8,0.5);ctx.lineTo(11.5,4+Math.cos(t*18));ctx.stroke();}
+ ctx.fillStyle=lc('#111');ctx.beginPath();ctx.arc(7,-3,1.15,0,TAU);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(7.3,-3.4,0.4,0,TAU);ctx.fill();
+ ctx.restore();}
 function drawSnail(c,t){ctx.save();ctx.translate(c.x,c.y);ctx.scale(c.face*1.2,1.2);
  ctx.fillStyle=rgba(lit(hx('#b8b0a0')),0.85);ctx.beginPath();ctx.ellipse(1,3,8,2.6,0,0,TAU);ctx.fill();
  ctx.fillStyle=lc('#7a5a42');ctx.beginPath();ctx.moveTo(-7,3);ctx.quadraticCurveTo(-8,-8,0,-10);ctx.quadraticCurveTo(7,-6,6,3);ctx.closePath();ctx.fill();
@@ -857,7 +873,6 @@ function crewEat(){let e=0;for(const k in CREW)e+=(S.crew[k]||0)*CREW[k].eat;e+=
 /* ============================ 害虫（セイタカイソギンチャク）と魚の病気 ============================ */
 function randomRockSpot(){for(let i=0;i<30;i++){const x=tx0()+60+Math.random()*(2*tankHW()-120);const y=surfaceY(x)+20+Math.random()*60;if(onRock(x,y)&&y<sandTop(x)-5&&S.corals.every(c=>Math.hypot(c.x-x,c.y-y)>35))return{x,y};}return null;}
 function spawnPests(){if(!S.corals.length||S.day<3)return;
- const shrimp=S.crew.shrimp||0;for(let i=0;i<shrimp&&S.pests.length;i++)S.pests.splice((Math.random()*S.pests.length)|0,1);
  const grow=[];for(const p of S.pests)if(Math.random()<0.4&&S.pests.length+grow.length<8){const x=p.x+(Math.random()-0.5)*70,y=p.y+(Math.random()-0.5)*30;if(onRock(x,y))grow.push({id:S.reqN++,x,y});}
  S.pests.push(...grow);
  if(!S.pests.length&&Math.random()<(S.q<70||S.algae>40?0.35:0.15)){const sp=randomRockSpot();if(sp){S.pests.push({id:S.reqN++,...sp});if(!S.flags.pestTip){S.flags.pestTip=true;say('あれ？ 岩に茶色い小さなイソギンチャクが…！ それは「セイタカイソギンチャク」。増えると周りのサンゴを刺して弱らせる、サンゴ水槽の困りものなんだ。タップして取り除こう。');}}}}
@@ -1057,6 +1072,7 @@ function frame(now){const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=(
  if(PLACE&&ghost)drawGhost(t);
  for(const p of S.pests)drawPest(p,t);
  if(NIGHTF>0.02)drawNightLife(t);
+ for(const c of CREWRT)if(c.type==='shrimp')drawShrimp(c,t);
  for(const c of CREWRT)if(c.type==='hermit')drawHermit(c,t);
  for(const f of FISHES)drawFish(f,t);
  drawParts(t);drawCaustics(t,false);drawAlgaeGlass();for(const c of CREWRT)if(c.type==='snail')drawSnail(c,t);drawTop(t);drawVignette();drawRoom();
