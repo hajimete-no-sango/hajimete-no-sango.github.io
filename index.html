@@ -405,7 +405,10 @@ const SAVE_KEY='reef_beginner_v1';
 const DEF=()=>({v:1,started:false,day:1,time:9,cp:40,q:92,sal:1.024,temp:25.5,heat:0,fedT:0,eq:{tank:0,pump:0,led:0,skimmer:0,cooler:0,ato:0,heater:0,backup:0},corals:[],fish:[{id:1,sp:'clown',g:0.5},{id:2,sp:'clown',g:0.5}],nextFid:3,crew:{snail:0,hermit:0,shrimp:0},pests:[],req:[],reqN:1,algae:5,mi:0,flags:{},zukan:{},fishZ:{clown:true},nextId:1,frags:0,lost:[]});
 let DEMO=Q.has('demo');const VIEWH=location.hash.startsWith('#v=')?location.hash.slice(3):null;let VIEW=false;
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s&&s.v===1){const d=DEF();const eq=Object.assign(d.eq,s.eq||{});if(!s.eq||s.eq.tank===undefined)eq.tank=2;const o=Object.assign(d,s,{eq,crew:Object.assign({snail:0,hermit:0,shrimp:0},s.crew||{}),pests:s.pests||[],req:s.req||[],flags:s.flags||{},zukan:s.zukan||{},lost:s.lost||[]});o.fish=o.fish.map(f=>Object.assign({id:o.nextFid++,g:0.8},f));return o;}}catch(e){}return null;}
-function save(){if(DEMO||VIEW)return;try{if(S.started)S.lastSeen=Date.now();const o=Object.assign({},S,{corals:S.corals.map(({_geo,_ev,ret,...c})=>c)});localStorage.setItem(SAVE_KEY,JSON.stringify(o));}catch(e){}}
+let RESETTING=false;
+function resetGame(){RESETTING=true;try{localStorage.removeItem(SAVE_KEY);}catch(e){}location.href=location.href.split('#')[0].split('?')[0];}
+function save(){if(DEMO||VIEW||RESETTING||!S.started)return; // タイトル画面中・やり直し中は保存しない
+ try{if(S.started)S.lastSeen=Date.now();const o=Object.assign({},S,{corals:S.corals.map(({_geo,_ev,ret,...c})=>c)});localStorage.setItem(SAVE_KEY,JSON.stringify(o));}catch(e){}}
 let S=load()||DEF();
 
 /* ============================ キャンバス ============================ */
@@ -1278,7 +1281,7 @@ mbody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.d
  if(b.dataset.inst){installApp();return;}
  if(b.dataset.ph==='photo'){closeModal();setTimeout(takePhoto,60);return;}
  if(b.dataset.ph==='share'){copyShare();return;}
- if(b.dataset.help==='reset'){if(b.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{b.dataset.arm='1';b.textContent='本当に消す？（もう一度押す）';}}});
+ if(b.dataset.help==='reset'){if(b.dataset.arm){resetGame();}else{b.dataset.arm='1';b.textContent='本当に消す？（もう一度押す）';}}});
 let zTab='coral',ZCUR=null;
 const zukanList=()=>CORAL_IDS.filter(id=>DEMO||(S.zukan[id]||[]).length);
 function zukanStep(d){if(!ZCUR)return;const zl=zukanList();const i=zl.indexOf(ZCUR.sp);if(i<0)return;const nx=zl[(i+d+zl.length)%zl.length];openZukan(nx,(S.zukan[nx]||[0])[0],'coral',ZCUR.mode);}
@@ -1350,7 +1353,7 @@ function awayProgress(){if(!S.lastSeen)return false;const hrs=(Date.now()-S.last
 function syncFishAndCrew(){syncFish(S.fish);syncCrew();}
 function syncFish(list){FISHES=list.map(f=>Object.assign(spawnFish(f.sp),{ref:f}));}
 document.getElementById('startBtn').onclick=begin;
-document.getElementById('resetBtn').onclick=e=>{if(e.target.dataset.arm){localStorage.removeItem(SAVE_KEY);location.reload();}else{e.target.dataset.arm=1;e.target.textContent='本当に消す？（もう一度押す）';}};
+document.getElementById('resetBtn').onclick=e=>{if(e.target.dataset.arm){resetGame();}else{e.target.dataset.arm=1;e.target.textContent='本当に消す？（もう一度押す）';}};
 addEventListener('beforeunload',()=>{S.flags.lastLight=L.tm;save();});
 window.addEventListener('error',e=>{document.body.dataset.err=(e.message||'')+' @'+(e.lineno||'');});
 
@@ -1358,7 +1361,7 @@ resize();initCaustics();makeAlgaeTex();titleCorals=demoCorals();
 const VS=VIEWH&&loadShare(VIEWH);
 if(VS){VIEW=true;S=VS;document.body.classList.add('view');document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFishAndCrew();document.getElementById('mTitle').innerHTML='👀 だれかの水槽を見ています　<b>▶ 自分もはじめる</b>';document.getElementById('mchip').onclick=()=>{location.href=location.href.split('#')[0];};}
 else if(DEMO){S=DEF();S.started=true;S.cp=3000;S.eq={tank:3,pump:2,led:2,skimmer:1,cooler:1,ato:1,heater:1,backup:1};S.corals=demoCorals();S.fish=['clown','clown','yellowtang','bluetang','firefish','chromis','chromis','chromis','gramma','blenny','mandarin'].map((sp,i)=>({id:i+1,sp,g:0.9}));S.crew={snail:3,hermit:3};S.algae=Q.has('algae')?80:5;CORAL_IDS.forEach(id=>S.zukan[id]=[0]);S.mi=MISSIONS.length;document.getElementById('title').classList.add('hidden');document.body.classList.remove('titling');syncFishAndCrew();updMission();}
-else if(S.started){document.getElementById('startBtn').textContent='つづきから';document.getElementById('resetBtn').classList.remove('hidden');S.started=false;syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);}
+else if(S.started||S.flags.intro||S.corals.length){document.getElementById('startBtn').textContent='つづきから';document.getElementById('resetBtn').classList.remove('hidden');S.started=false;syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);}
 else syncFish([{sp:'clown'},{sp:'clown'},{sp:'yellowtang'},{sp:'bluetang'}]);
 if(Q.get('light')==='blue'){L.m=L.tm=1;}if(Q.get('light')==='mix'){L.m=L.tm=0.5;}
 if(Q.has('shot'))document.body.classList.add('shot');
